@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body { @apply bg-lienzo text-tinta font-sans antialiased; }
+  /* Números tabulares: las columnas de euros quedan alineadas */
+  .cifra { font-variant-numeric: tabular-nums; }
+}
+
+@layer components {
+  .card      { @apply bg-lienzo-card border border-borde rounded-card shadow-card; }
+  .etiqueta  { @apply text-[11px] font-semibold uppercase tracking-wider text-tinta-tenue; }
+  .btn       { @apply inline-flex items-center gap-2 px-4 h-9 rounded-lg text-sm font-medium transition; }
+  .btn-prim  { @apply btn bg-tinta text-white hover:bg-tinta-suave; }
+  .btn-sec   { @apply btn bg-white border border-borde text-tinta hover:bg-lienzo; }
+  .btn-marca { @apply btn bg-marca text-white hover:bg-marca-oscuro; }
+}

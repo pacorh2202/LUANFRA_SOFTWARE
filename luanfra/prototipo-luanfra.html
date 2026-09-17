@@ -1,0 +1,2873 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Luanfra — Prototipo del sistema de ofertas</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --tinta:#14171A; --tinta-suave:#3A4149; --tinta-tenue:#6B7280;
+  --marca:#D42A2A; --marca-oscuro:#A81F1F; --marca-claro:#FDECEC;
+  --lienzo:#F6F7F9; --card:#FFFFFF;
+  --borde:#E6E8EB; --borde-fuerte:#D3D7DC;
+  --exito:#16A34A; --exito-claro:#ECFDF3;
+  --aviso:#B45309; --aviso-claro:#FEF6E7;
+  --r:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,system-ui,"Segoe UI",sans-serif;background:var(--lienzo);color:var(--tinta);
+     -webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5}
+.cifra{font-variant-numeric:tabular-nums}
+button{font-family:inherit;font-size:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input,select{font-family:inherit;font-size:inherit}
+table{width:100%;border-collapse:collapse}
+
+/* --- estructura --- */
+.app{display:flex;min-height:100vh}
+.lateral{width:56px;background:#fff;border-right:1px solid var(--borde);display:flex;
+         flex-direction:column;align-items:center;padding:12px 0;gap:4px;position:sticky;top:0;height:100vh}
+.logo{width:32px;height:32px;border-radius:8px;background:var(--tinta);display:grid;place-items:center;
+      color:var(--marca);font-weight:600;margin-bottom:10px}
+.nav{width:36px;height:36px;border-radius:8px;display:grid;place-items:center;color:var(--tinta-tenue);
+     transition:.15s;font-size:17px}
+.nav:hover{background:var(--lienzo);color:var(--tinta)}
+.nav.activo{background:var(--marca-claro);color:var(--marca)}
+.principal{flex:1;min-width:0;padding-bottom:60px}
+
+.cabecera{display:flex;justify-content:space-between;align-items:flex-start;padding:20px 24px 16px;gap:20px}
+.cabecera h1{font-size:20px;font-weight:600}
+.cabecera p{font-size:14px;color:var(--tinta-tenue);margin-top:2px}
+
+/* --- piezas --- */
+.card{background:var(--card);border:1px solid var(--borde);border-radius:var(--r)}
+.card>header{display:flex;align-items:center;justify-content:space-between;padding:0 16px;height:48px;
+             border-bottom:1px solid var(--borde)}
+.card>header h2{font-size:14px;font-weight:600}
+.etiqueta{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--tinta-tenue)}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;padding:0 24px}
+.kpi{background:#fff;border:1px solid var(--borde);border-radius:var(--r);padding:16px}
+.kpi .valor{font-size:24px;font-weight:600;margin-top:6px}
+.kpi .valor.acento{color:var(--marca)}
+.kpi .pie{font-size:12px;color:var(--tinta-tenue);margin-top:2px}
+
+.chip{display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:99px;
+      font-size:12px;font-weight:500;white-space:nowrap}
+.chip::before{content:"";width:6px;height:6px;border-radius:99px;background:currentColor;opacity:.7}
+.chip.sinpunto::before{display:none}
+.chip.verde{background:var(--exito-claro);color:var(--exito)}
+.chip.ambar{background:var(--aviso-claro);color:var(--aviso)}
+.chip.rojo{background:var(--marca-claro);color:var(--marca)}
+.chip.gris{background:var(--lienzo);color:var(--tinta-tenue);border:1px solid var(--borde)}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 16px;height:36px;
+     border-radius:8px;font-weight:500;transition:.15s}
+.btn-prim{background:var(--tinta);color:#fff}
+.btn-prim:hover{background:var(--tinta-suave)}
+.btn-sec{background:#fff;border:1px solid var(--borde);color:var(--tinta)}
+.btn-sec:hover{background:var(--lienzo)}
+.btn-marca{background:var(--marca);color:#fff}
+.btn-marca:hover{background:var(--marca-oscuro)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+.filtro{height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--borde);background:#fff;
+        color:var(--tinta-suave);font-weight:500;font-size:13px;transition:.15s}
+.filtro:hover{background:var(--lienzo)}
+.filtro.activo{background:var(--tinta);color:#fff;border-color:var(--tinta)}
+
+.campo{height:36px;padding:0 12px;border:1px solid var(--borde);border-radius:8px;background:#fff;width:100%}
+.campo:focus{outline:none;border-color:var(--borde-fuerte);box-shadow:0 0 0 3px rgba(20,23,26,.06)}
+
+thead th{text-align:left;font-weight:500;color:var(--tinta-tenue);padding:10px 16px;font-size:13px;
+         border-bottom:1px solid var(--borde)}
+tbody td{padding:12px 16px;border-bottom:1px solid var(--borde)}
+tbody tr:last-child td{border-bottom:none}
+tr.pulsable{cursor:pointer;transition:background .12s}
+tr.pulsable:hover{background:var(--lienzo)}
+.der{text-align:right}
+.sub{font-size:12px;color:var(--tinta-tenue)}
+
+.barra{height:6px;background:var(--lienzo);border-radius:99px;overflow:hidden}
+.barra>span{display:block;height:100%;border-radius:99px;transition:width .3s}
+
+.aviso{display:flex;gap:10px;padding:12px;border-radius:8px;font-size:13px;line-height:1.55}
+.aviso.bloqueante{background:var(--marca-claro);color:var(--marca-oscuro)}
+.aviso.importante{background:var(--aviso-claro);color:var(--aviso)}
+.aviso.menor{background:var(--lienzo);color:var(--tinta-tenue)}
+.aviso .ic{flex-shrink:0;font-weight:600}
+
+.rejilla{display:grid;grid-template-columns:1fr 360px;gap:16px;padding:16px 24px;align-items:start}
+.pila{display:flex;flex-direction:column;gap:16px}
+.fila{display:flex;justify-content:space-between;align-items:baseline;gap:16px;font-size:14px;padding:3px 0}
+.fila .k{color:var(--tinta-tenue)}
+.vacio{padding:48px 16px;text-align:center;color:var(--tinta-tenue)}
+.vacio strong{display:block;color:var(--tinta);font-size:14px;margin-bottom:4px}
+.brindis{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:10px 18px;border-radius:99px;
+         font-size:13px;font-weight:500;box-shadow:0 4px 16px rgba(0,0,0,.14);opacity:0;transition:.25s;
+         pointer-events:none;z-index:50}
+.brindis.ver{opacity:1;transform:translateX(-50%) translateY(-4px)}
+.brindis.ok{background:var(--exito);color:#fff}
+.brindis.mal{background:var(--marca);color:#fff}
+.nota{font-size:12px;color:var(--tinta-tenue);line-height:1.6}
+.demo{background:#FFF8E6;border-bottom:1px solid #F0DFB0;color:#7A5B10;font-size:12.5px;
+      padding:8px 24px;text-align:center}
+
+.bloque{background:#fff;border:1px solid var(--borde);border-radius:var(--r);
+  overflow:hidden;margin-bottom:16px}
+.bloque>h3{font-size:14px;font-weight:600;padding:12px 16px;
+  border-bottom:1px solid var(--borde);display:flex;justify-content:space-between;
+  align-items:center}
+.bloque>h3 span{font-size:12px;font-weight:400;color:var(--tinta-tenue)}
+.ind{display:flex;justify-content:space-between;align-items:center;gap:12px;
+  padding:11px 16px;border-bottom:1px solid #f0f1f3}
+.ind:last-child{border-bottom:none}
+.ind .n{font-weight:500}
+.ind .f{font-size:12px;color:var(--tinta-tenue);margin-top:1px}
+.ind .v{text-align:right;flex-shrink:0}
+.ind .v b{font-size:17px;font-variant-numeric:tabular-nums}
+.ind .v small{display:block;font-size:11px;color:var(--tinta-tenue)}
+.punto{width:8px;height:8px;border-radius:99px;flex-shrink:0}
+.p-bien{background:var(--exito)}.p-regular{background:var(--aviso)}
+.p-mal{background:var(--marca)}.p-sin{background:var(--borde-fuerte)}
+.p-informativo{background:var(--tinta-tenue)}
+.aviso-c{background:#fff;border:1px solid var(--borde);border-radius:var(--r);
+  padding:14px 16px;margin-bottom:10px;display:flex;gap:12px}
+.aviso-c.critica{border-left:3px solid var(--marca)}
+.aviso-c.alta{border-left:3px solid var(--aviso)}
+.aviso-c.media{border-left:3px solid var(--tinta-tenue)}
+.aviso-c .cuerpo{flex:1;min-width:0}
+.aviso-c .t{font-weight:600;margin-bottom:3px}
+.aviso-c .d{font-size:13px;color:var(--tinta-tenue);line-height:1.55}
+.aviso-c .a{font-size:13px;margin-top:8px;font-weight:500}
+.drop{border:2px dashed var(--borde-fuerte);border-radius:10px;padding:22px;
+  text-align:center;color:var(--tinta-tenue);transition:.15s;cursor:pointer;background:#fff}
+.drop:hover,.drop.sobre{border-color:var(--marca);background:var(--marca-claro);
+  color:var(--marca)}
+.fich{display:flex;gap:11px;align-items:flex-start;padding:11px 13px;
+  border:1px solid var(--borde);border-radius:9px;margin-top:9px;background:#fff}
+.fich .ico{width:34px;height:34px;border-radius:7px;display:grid;place-items:center;
+  font-size:11px;font-weight:700;color:#fff;flex-shrink:0}
+.fich .ico.pdf{background:var(--marca)}.fich .ico.d3{background:var(--tinta)}
+.fich .ico.err{background:var(--tinta-tenue)}
+.mq{cursor:pointer}
+.mq:hover polygon{filter:brightness(1.12)}
+.leyenda{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--tinta-suave)}
+.leyenda .lg{display:flex;align-items:center;gap:6px}
+.leyenda i{width:11px;height:11px;border-radius:3px;display:block}
+code{background:var(--lienzo);padding:1px 5px;border-radius:4px;font-size:12px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.g3{display:grid;grid-template-columns:2fr 1fr;gap:16px}
+.tarjeta{background:#fff;border:1px solid var(--borde);border-radius:var(--r);padding:16px}
+.tarjeta h3{font-size:14px;font-weight:600;margin-bottom:2px}
+.tarjeta .sub2{font-size:12px;color:var(--tinta-tenue);margin-bottom:14px}
+.hero{background:var(--tinta);color:#fff;border-radius:var(--r);padding:20px 22px;
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:20px}
+.hero .e{font-size:11px;text-transform:uppercase;letter-spacing:.06em;opacity:.6;
+  font-weight:600}
+.hero .v{font-size:27px;font-weight:600;margin-top:5px;font-variant-numeric:tabular-nums}
+.hero .v.r{color:#FF7A6B}
+.hero .p{font-size:12px;opacity:.6;margin-top:2px}
+@media(max-width:900px){.g2,.g3{grid-template-columns:1fr}}
+.chat{background:#fff;border:1px solid var(--borde);border-radius:var(--r);
+  height:460px;display:flex;flex-direction:column;overflow:hidden}
+.chat .msgs{flex:1;overflow-y:auto;padding:16px;display:flex;
+  flex-direction:column;gap:12px}
+.burb{max-width:76%;padding:10px 14px;border-radius:12px;font-size:14px;line-height:1.55}
+.burb.yo{align-self:flex-end;background:var(--tinta);color:#fff}
+.burb.bot{align-self:flex-start;background:var(--lienzo);border:1px solid var(--borde)}
+.burb .fuente{font-size:11px;margin-top:7px;padding-top:6px;
+  border-top:1px solid var(--borde);color:var(--tinta-tenue)}
+.burb.bot .fuente.tec{color:var(--aviso)}
+.chat .entrada{border-top:1px solid var(--borde);padding:12px;display:flex;gap:8px}
+.sug{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.sug button{font-size:12px;padding:5px 11px;border-radius:99px;
+  border:1px solid var(--borde);background:#fff;color:var(--tinta-suave)}
+.sug button:hover{background:var(--lienzo)}
+@media(max-width:1000px){.rejilla{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+
+<div class="demo">Prototipo con datos ficticios. Nada de lo que pulses sale de tu navegador.</div>
+
+<div class="app">
+  <nav class="lateral" id="lateral"></nav>
+  <main class="principal" id="vista"></main>
+</div>
+<div class="brindis" id="brindis"></div>
+
+<script>
+/* ============================================================
+   DATOS DE DEMO
+   ============================================================ */
+const HOY = new Date(2026, 8, 9);
+const dias = n => { const d = new Date(HOY); d.setDate(d.getDate() + n); return d; };
+
+const CLIENTES = [
+  { id:1, nombre:"Metalúrgica del Segura, S.L.", nif:"B30111222", dominio:"metalsegura.es",
+    corte:"día 25", pedido:true, portal:false, facturado:184200, margen:31 },
+  { id:2, nombre:"Hidráulicas Levante, S.A.", nif:"A30333444", dominio:"hidlevante.com",
+    corte:"fin de mes", pedido:true, portal:true, facturado:212800, margen:26 },
+  { id:3, nombre:"Componentes Agrícolas Sur", nif:"B30555666", dominio:"compagrisur.es",
+    corte:"día 20", pedido:false, portal:false, facturado:76400, margen:38 },
+  { id:4, nombre:"Estructuras Murcia, S.L.", nif:"B30777888", dominio:"estructurasmurcia.es",
+    corte:"fin de mes", pedido:true, portal:false, facturado:98900, margen:22 },
+];
+
+const CENTROS = [
+  { cod:"TORNO-1", nombre:"Torno CNC 1",         tarifa:0.48, horas:8,  factor:0.72, cola:2880 },
+  { cod:"TORNO-2", nombre:"Torno CNC 2",         tarifa:0.46, horas:16, factor:0.68, cola:6240 },
+  { cod:"FRESA-1", nombre:"Centro mecanizado 1", tarifa:0.62, horas:16, factor:0.70, cola:9100 },
+  { cod:"FRESA-2", nombre:"Centro mecanizado 2", tarifa:0.60, horas:8,  factor:0.66, cola:1450 },
+  { cod:"RECT-1",  nombre:"Rectificadora",       tarifa:0.55, horas:8,  factor:0.65, cola:640  },
+  { cod:"TEMPLE",  nombre:"Temple (externo)",    tarifa:0,    horas:0,  factor:1,    cola:0, externo:8 },
+];
+
+const HALLAZGOS = {
+  tol:   { g:"bloqueante", t:"El plano no declara tolerancia general." },
+  ajuste:{ g:"bloqueante", t:"El alojamiento de ø52 no lleva tolerancia y es superficie de ajuste." },
+  rug:   { g:"importante", t:"Sin rugosidad especificada en superficie funcional." },
+  trat:  { g:"importante", t:"No indica si las cotas son antes o después del recubrimiento." },
+  rosca: { g:"importante", t:"Rosca M12 sin profundidad útil indicada." },
+  proy:  { g:"menor",      t:"No indica sistema de proyección (europeo o americano)." },
+  esc:   { g:"menor",      t:"Falta la escala en el cajetín." },
+};
+
+function oferta(o) {
+  const base = { estado:"borrador", correcciones:[], hipotesis:[], hallazgos:[], comparables:[] };
+  return Object.assign(base, o);
+}
+
+let OFERTAS = [
+  oferta({ id:101, cliente:1, ref:"PIÑ-50-1006", desc:"Piñón ø50 F-125", cantidad:250, via:"B",
+    precio:1774.66, min:1572.35, max:1976.97, coste:1314.56, confianza:0.62,
+    optimo:dias(9), comprometible:dias(19), minutos:2685,
+    desglose:{material:552.12,maquina:446.95,preparacion:105.16,externo:92.02,indirectos:118.31},
+    plano:"plano_2006.pdf", vectorial:true, fiabilidad:0.90,
+    hallazgos:["tol","rug"],
+    hipotesis:["Tolerancia general asumida ISO 2768-m","Sin tratamiento superficial"],
+    comparables:[
+      {ref:"PIÑ-50-1116", desc:"Piñón ø50 F-125", sim:0.84, precio:3291.75, min:1840, cuando:"hace 8 meses", res:"perdida"},
+      {ref:"PIÑ-30-1105", desc:"Piñón ø30 F-114", sim:0.76, precio:3351.09, min:1620, cuando:"hace 2 años", res:"ganada"},
+      {ref:"EJE-35-1052", desc:"Eje ø35 F-125",   sim:0.66, precio:4134.46, min:2410, cuando:"hace 14 meses", res:"ganada"},
+    ], remitente:"compras@metalsegura.es", asunto:"Solicitud de oferta — piñón ø50", recibida:dias(-1) }),
+
+  oferta({ id:102, cliente:2, ref:"EJE-35-1052", desc:"Eje de transmisión ø35 F-125", cantidad:100, via:"A",
+    precio:3335.80, min:3215.71, max:3455.89, coste:2470.96, confianza:0.88,
+    optimo:dias(5), comprometible:dias(10), minutos:4120,
+    desglose:{material:1037.80,maquina:840.13,preparacion:197.68,externo:172.97,indirectos:222.38},
+    plano:"plano_2011.pdf", vectorial:true, fiabilidad:0.94, hallazgos:[],
+    comparables:[
+      {ref:"EJE-35-0988", desc:"Eje ø35 F-125", sim:0.97, precio:3210.00, min:4060, cuando:"hace 5 meses", res:"ganada"},
+      {ref:"EJE-35-0844", desc:"Eje ø35 F-125", sim:0.94, precio:3105.50, min:4180, cuando:"hace 13 meses", res:"ganada"},
+      {ref:"EJE-40-1002", desc:"Eje ø40 F-125", sim:0.81, precio:3640.20, min:4520, cuando:"hace 3 meses", res:"perdida"},
+    ], remitente:"pedidos@hidlevante.com", asunto:"RFQ ejes serie 100", recibida:dias(-1) }),
+
+  oferta({ id:103, cliente:4, ref:"BRI-80-1041", desc:"Brida ø80 AISI-316", cantidad:25, via:"C",
+    precio:null, min:null, max:null, coste:null, confianza:0.25,
+    optimo:dias(15), comprometible:dias(23), minutos:null, desglose:null,
+    plano:"plano_2014.pdf", vectorial:false, fiabilidad:0.55,
+    hallazgos:["ajuste","tol","trat","proy"],
+    hipotesis:[], comparables:[
+      {ref:"BRI-60-0912", desc:"Brida ø60 F-114", sim:0.58, precio:1980.00, min:920, cuando:"hace 3 años", res:"ganada"},
+    ], remitente:"tecnico@estructurasmurcia.es", asunto:"Presupuesto brida inox", recibida:dias(-2) }),
+
+  oferta({ id:104, cliente:3, ref:"CAS-25-1077", desc:"Casquillo ø25 F-114", cantidad:50, via:"A",
+    precio:892.40, min:860.30, max:924.50, coste:661.04, confianza:0.91,
+    optimo:dias(6), comprometible:dias(13), minutos:980,
+    desglose:{material:277.64,maquina:224.75,preparacion:52.88,externo:46.27,indirectos:59.50},
+    plano:"plano_2018.pdf", vectorial:true, fiabilidad:0.92, hallazgos:["esc"],
+    comparables:[
+      {ref:"CAS-25-0771", desc:"Casquillo ø25 F-114", sim:0.96, precio:870.00, min:960, cuando:"hace 7 meses", res:"ganada"},
+      {ref:"CAS-25-0644", desc:"Casquillo ø25 F-114", sim:0.93, precio:845.00, min:1010, cuando:"hace 2 años", res:"ganada"},
+    ], remitente:"compras@compagrisur.es", asunto:"Repetición casquillos", recibida:dias(-3) }),
+
+  oferta({ id:105, cliente:1, ref:"VÁS-60-1019", desc:"Vástago ø60 1.2379", cantidad:10, via:"B",
+    precio:4108.15, min:3640.20, max:4576.10, coste:3043.07, confianza:0.64,
+    optimo:dias(12), comprometible:dias(21), minutos:3310,
+    desglose:{material:1278.09,maquina:1034.64,preparacion:243.45,externo:213.01,indirectos:273.88},
+    plano:"plano_2021.pdf", vectorial:true, fiabilidad:0.88,
+    hallazgos:["rosca","proy"],
+    hipotesis:["Rosca M12 asumida a 18 mm de profundidad útil"],
+    comparables:[
+      {ref:"VÁS-60-0901", desc:"Vástago ø60 1.2379", sim:0.79, precio:3980.00, min:3200, cuando:"hace 18 meses", res:"ganada"},
+      {ref:"VÁS-50-1044", desc:"Vástago ø50 1.2379", sim:0.71, precio:3410.00, min:2740, cuando:"hace 9 meses", res:"perdida"},
+    ], remitente:"compras@metalsegura.es", asunto:"Vástagos herramienta", recibida:dias(-3) }),
+
+  oferta({ id:106, cliente:2, ref:"SOP-40-1003", desc:"Soporte ø40 AISI-316", cantidad:120, via:"A",
+    precio:2214.90, min:2136.20, max:2293.60, coste:1640.67, confianza:0.86,
+    optimo:dias(7), comprometible:dias(14), minutos:2240,
+    desglose:{material:689.08,maquina:557.83,preparacion:131.25,externo:114.85,indirectos:147.66},
+    plano:"plano_2027.pdf", vectorial:true, fiabilidad:0.91, hallazgos:[],
+    comparables:[
+      {ref:"SOP-40-0977", desc:"Soporte ø40 AISI-316", sim:0.95, precio:2180.00, min:2190, cuando:"hace 4 meses", res:"ganada"},
+    ], remitente:"pedidos@hidlevante.com", asunto:"Soportes inox", recibida:dias(-4) }),
+
+  oferta({ id:107, cliente:3, ref:"BRI-30-1088", desc:"Brida ø30 F-114", cantidad:200, via:"C",
+    precio:null, min:null, max:null, coste:null, confianza:0.30,
+    optimo:dias(18), comprometible:dias(27), minutos:null, desglose:null,
+    plano:"plano_2031.pdf", vectorial:false, fiabilidad:0.48,
+    hallazgos:["tol","ajuste","rug"], hipotesis:[], comparables:[],
+    remitente:"compras@compagrisur.es", asunto:"Nueva pieza — brida especial", recibida:dias(-5) }),
+];
+
+
+/* ---------- KPIs reales del histórico (47.085 presupuestos) ---------- */
+const KPIS = {
+  Comercial: [
+    {n:"Tasa de éxito", v:27.0, u:"%", o:40, s:"mayor", f:"Aceptadas / emitidas"},
+    {n:"Éxito ponderado por importe", v:18.0, u:"%", o:40, s:"mayor",
+     f:"Si es menor que la simple, se pierden las ofertas grandes"},
+    {n:"Importe ofertado", v:34728920, u:"€", o:null, s:"mayor", f:"Histórico completo"},
+    {n:"Importe ganado", v:6247365, u:"€", o:null, s:"mayor", f:"Histórico completo"},
+    {n:"Días hasta la aceptación", v:9.7, u:"días", o:21, s:"menor", f:"Mediana"},
+  ],
+  "Eficiencia de máquina": [
+    {n:"OEE", v:null, u:"%", o:60, s:"mayor", f:"Disponibilidad × Rendimiento × Calidad",
+     falta:"partes con inicio y fin"},
+    {n:"Disponibilidad", v:null, u:"%", o:80, s:"mayor", f:"Produciendo / planificado",
+     falta:"partes con inicio y fin"},
+    {n:"Rendimiento", v:null, u:"%", o:85, s:"mayor", f:"Tiempo ideal / produciendo",
+     falta:"tiempo estimado"},
+    {n:"Calidad", v:null, u:"%", o:98.5, s:"mayor", f:"Buenas / totales",
+     falta:"cantidad buena y rechazo"},
+    {n:"Utilización", v:null, u:"%", o:75, s:"mayor", f:"Horas cargadas / disponibles",
+     falta:"cola por máquina"},
+  ],
+  "Preparación y lotes": [
+    {n:"Peso de la preparación", v:null, u:"%", o:20, s:"menor",
+     f:"Setup / tiempo total. La palanca más grande de un taller por encargo",
+     falta:"minutos de preparación por parte"},
+    {n:"Tamaño medio de lote", v:19.2, u:"uds", o:null, s:"mayor",
+     f:"Explica el peso del setup"},
+  ],
+  "Flujo y plazos": [
+    {n:"Plazos cumplidos", v:null, u:"%", o:90, s:"mayor", f:"A tiempo / entregadas",
+     falta:"fecha de cierre"},
+    {n:"Retraso medio", v:null, u:"días", o:3, s:"menor", f:"De las que llegan tarde",
+     falta:"fecha de cierre"},
+    {n:"Eficiencia de flujo", v:null, u:"%", o:15, s:"mayor",
+     f:"Tiempo mecanizando / plazo total. En un taller típico, entre 5% y 15%",
+     falta:"partes de trabajo"},
+    {n:"Trabajo en curso", v:null, u:"órdenes", o:null, s:"menor",
+     f:"A más trabajo suelto, más largo el plazo de todo", falta:"órdenes abiertas"},
+    {n:"Cola del cuello de botella", v:12.4, u:"días", o:12, s:"menor",
+     f:"El plazo lo marca la máquina más cargada"},
+  ],
+  Calidad: [
+    {n:"Rechazo", v:null, u:"%", o:1.5, s:"menor", f:"Rechazadas / fabricadas",
+     falta:"cantidad buena y rechazo"},
+    {n:"Órdenes con incidencia", v:null, u:"%", o:10, s:"menor", f:"Con causa / total",
+     falta:"causa de incidencia"},
+  ],
+  "Estimación y coste": [
+    {n:"Estimaciones dentro del ±15%", v:null, u:"%", o:70, s:"mayor",
+     f:"Mide si se puede confiar en el presupuestador", falta:"tiempo real"},
+    {n:"Desviación de tiempos", v:null, u:"%", o:10, s:"menor",
+     f:"Si es alta y constante, las tarifas están mal", falta:"tiempo real"},
+    {n:"Coste hora real", v:null, u:"€/h", o:null, s:"menor",
+     f:"Si difiere de la tarifa, cada oferta lleva un error dentro",
+     falta:"costes del centro"},
+  ],
+};
+
+const AVISOS = [
+  {u:"critica", rol:"administracion", t:"184.200 € entregados y sin facturar",
+   d:"14 albaranes pendientes. El más antiguo lleva 78 días esperando.",
+   a:"Emite hoy las facturas de los albaranes de más de una semana."},
+  {u:"critica", rol:"taller", t:"La orden 166107 no llega a la fecha",
+   d:"Quedan 46 h de trabajo y solo caben 24 h antes del 18/09. Faltan 22 h.",
+   a:"Reordena la cola, mete horas, o avisa al cliente hoy con una fecha nueva.",
+   correo:true},
+  {u:"alta", rol:"comercial", t:"53 ofertas en el momento bueno para llamar",
+   d:"36.429 € en juego. Entre la segunda y la cuarta semana es cuando más se convierte.",
+   a:"Empieza por CHAINS & SPROCKETS: 6.720 €"},
+  {u:"alta", rol:"administracion", t:"Quedan 2 días para el corte de Industrias YUK",
+   d:"42.800 € sin facturar. Si no entra antes del día 25, se cobra un mes más tarde.",
+   a:"Factura hoy lo de Industrias YUK."},
+  {u:"alta", rol:"taller", t:"TORNO-2 vacío mientras FRESA-1 va ahogado",
+   d:"FRESA-1 tiene 21 días de cola y TORNO-2 menos de 1.",
+   a:"Mira si algo de la cola de FRESA-1 puede pasar a TORNO-2."},
+  {u:"alta", rol:"oficina_tecnica", t:"3 peticiones paradas por un plano incompleto",
+   d:"La más antigua lleva 6 días. Cada día de espera es un día que el cliente no sabe nada.",
+   a:"Manda las consultas técnicas hoy: ya están redactadas."},
+  {u:"media", rol:"direccion", t:"CHAINS & SPROCKETS pide mucho y compra poco",
+   d:"4.647 ofertas y solo un 8,7% aceptadas. Cada una consume tiempo de oficina técnica.",
+   a:"Decide: precio mínimo para ese cliente, o priorizar sus peticiones por detrás."},
+  {u:"media", rol:"direccion", t:"BEA TRANSMISION 98 con un 16,1% de aceptación",
+   d:"2.273 ofertas. Segundo cliente en volumen de peticiones, cuarto en facturación.",
+   a:"Revisa si el precio o el plazo están fuera de mercado para ese cliente."},
+];
+
+const ROLES = {taller:"Taller", administracion:"Administración", comercial:"Comercial",
+               direccion:"Dirección", oficina_tecnica:"Oficina técnica"};
+
+const RESPUESTAS = [
+  {p:/yuk|industrias/i, carril:"datos",
+   t:"A Industrias YUK le habéis hecho 27.779 ofertas y ganado 7.111, un 25,6%. "+
+     "Representa el 59,7% de vuestra facturación: 20.744.765 €.",
+   filas:[["Ofertas","27.779"],["Ganadas","7.111"],["Éxito","25,6 %"],
+          ["Facturado","20.744.765 €"],["Peso sobre el total","59,7 %"]]},
+  {p:/chains|sprocket/i, carril:"datos",
+   t:"Chains & Sprockets ha pedido 4.647 ofertas y solo se han aceptado 402, un 8,7%. "+
+     "Es el segundo cliente en facturación pero el de peor conversión.",
+   filas:[["Ofertas","4.647"],["Ganadas","402"],["Éxito","8,7 %"],
+          ["Facturado","3.416.656 €"]]},
+  {p:/año|evolucion|evolución|vamos/i, carril:"datos",
+   t:"La tasa de éxito ha bajado del 33,5% en 2016 al 22,0% en 2026. "+
+     "El número de ofertas también cae, pero el importe medio sube de 45 € a 105 €.",
+   filas:[["2016","5.177 ofertas · 33,5 %"],["2020","4.886 ofertas · 24,8 %"],
+          ["2024","4.606 ofertas · 19,3 %"],["2026","2.330 ofertas · 22,0 %"]]},
+  {p:/2768|tolerancia general/i, carril:"tecnico",
+   t:"ISO 2768 es la norma de tolerancias generales, las que se aplican a las cotas "+
+     "sin tolerancia indicada. Tiene cuatro clases: f (fina), m (media), c (basta) "+
+     "y v (muy basta). La -m es la habitual en mecanizado general: para una cota de "+
+     "30 a 120 mm admite ±0,3 mm. Si el plano no la declara, hay que preguntarlo: "+
+     "cambia el proceso y el precio."},
+  {p:/temple|templado|tratamiento/i, carril:"tecnico",
+   t:"El temple endurece el acero calentándolo por encima de la temperatura crítica "+
+     "y enfriándolo rápido. Dos cosas importantes para presupuestar: la pieza se "+
+     "mueve, así que las cotas de ajuste hay que rectificarlas después; y suele ir "+
+     "subcontratado, con plazos de 8 a 10 días que mandan sobre el plazo interno."},
+  {p:/piñon|pinon|z\s*\d+|paso/i, carril:"datos",
+   t:"Para un piñón Z18 de paso 12,7 hay 3 comparables en el histórico. El precio "+
+     "medio ronda los 30 € por unidad en lotes pequeños.",
+   filas:[["Piñón Z18 paso 12,7","30,00 € · 2 veces"],
+          ["Piñón Z18 paso 12,7","6,30 € · 1 vez"],
+          ["Piñón Triple Z18 paso 12,7","32,00 € · 1 vez"]]},
+  {p:/rosca|m8|métrica/i, carril:"tecnico",
+   t:"Para una M8 de paso normal el taladro previo es de ø6,8. Ojo: por geometría "+
+     "no se puede saber si un agujero de ø6,8 lleva rosca o es de paso. Eso solo lo "+
+     "dice el plano o el PMI del modelo 3D."},
+];
+
+/* ============================================================
+   UTILIDADES
+   ============================================================ */
+const eur = v => v == null ? "—"
+  : new Intl.NumberFormat("es-ES",{style:"currency",currency:"EUR"}).format(v);
+const eurCorto = v => v == null ? "—"
+  : new Intl.NumberFormat("es-ES",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(v);
+const fecha = d => !d ? "—"
+  : d.toLocaleDateString("es-ES",{day:"2-digit",month:"short",year:"2-digit"});
+const fechaCorta = d => !d ? "—"
+  : d.toLocaleDateString("es-ES",{day:"2-digit",month:"short"});
+const pc = v => v == null ? "—" : Math.round(v*100) + " %";
+const horas = m => m == null ? "—" : Math.floor(m/60) + " h " + String(m%60).padStart(2,"0") + " min";
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+const VIA = {
+  A:{txt:"Ya la hicimos",    clase:"verde"},
+  B:{txt:"Parecida",         clase:"ambar"},
+  C:{txt:"Necesita persona", clase:"rojo"},
+};
+const chipVia = v => `<span class="chip ${VIA[v].clase}">${VIA[v].txt}</span>`;
+const cliente = id => CLIENTES.find(c => c.id === id);
+const bloqueantes = o => o.hallazgos.filter(h => HALLAZGOS[h].g === "bloqueante").length;
+const tonoBarra = p => p > 80 ? "var(--exito)" : p > 55 ? "var(--aviso)" : "var(--marca)";
+
+function brindis(txt, ok = true) {
+  const b = document.getElementById("brindis");
+  b.textContent = txt;
+  b.className = "brindis ver " + (ok ? "ok" : "mal");
+  clearTimeout(b._t);
+  b._t = setTimeout(() => { b.className = "brindis " + (ok ? "ok" : "mal"); }, 2600);
+}
+
+
+/* ============================================================
+   GRÁFICOS EN SVG
+   Sin librerías: el fichero tiene que seguir abriéndose con doble clic
+   y funcionar sin conexión.
+   ============================================================ */
+
+const PAL = {tinta:"#14171A", marca:"#D42A2A", acero:"#6B7280",
+             exito:"#16A34A", aviso:"#B45309", suave:"#E6E8EB"};
+
+function svg(w, h, contenido, extra="") {
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}"
+    preserveAspectRatio="xMidYMid meet" ${extra}
+    style="display:block;overflow:visible">${contenido}</svg>`;
+}
+
+/** Línea con área bajo la curva. Para series temporales. */
+function gLinea(datos, {alto=180, color=PAL.marca, sufijo="", minCero=false}={}) {
+  if (!datos.length) return "";
+  const w = 620, h = alto, mx = 42, my = 18;
+  const vals = datos.map(d => d.v);
+  const max = Math.max(...vals) * 1.1;
+  const min = minCero ? 0 : Math.max(0, Math.min(...vals) * 0.85);
+  const ex = i => mx + i * (w - mx - 14) / Math.max(1, datos.length - 1);
+  const ey = v => my + (1 - (v - min) / (max - min || 1)) * (h - my * 2);
+
+  const puntos = datos.map((d, i) => `${ex(i)},${ey(d.v)}`).join(" ");
+  const area = `M${ex(0)},${h - my} L${puntos.split(" ").join(" L")} L${ex(datos.length-1)},${h - my} Z`;
+
+  const rejilla = [0, .5, 1].map(f => {
+    const v = min + (max - min) * f, y = ey(v);
+    return `<line x1="${mx}" y1="${y}" x2="${w-14}" y2="${y}" stroke="${PAL.suave}" stroke-width="1"/>
+            <text x="${mx-8}" y="${y+4}" text-anchor="end" font-size="11"
+              fill="${PAL.acero}">${Math.round(v)}${sufijo}</text>`;
+  }).join("");
+
+  const etiquetas = datos.map((d, i) =>
+    (datos.length <= 12 || i % 2 === 0)
+      ? `<text x="${ex(i)}" y="${h-2}" text-anchor="middle" font-size="11"
+           fill="${PAL.acero}">${d.e}</text>` : "").join("");
+
+  const marcas = datos.map((d, i) =>
+    `<circle cx="${ex(i)}" cy="${ey(d.v)}" r="3.5" fill="#fff" stroke="${color}"
+       stroke-width="2"><title>${d.e}: ${d.v}${sufijo}</title></circle>`).join("");
+
+  return svg(w, h, `${rejilla}
+    <path d="${area}" fill="${color}" opacity="0.07"/>
+    <polyline points="${puntos}" fill="none" stroke="${color}" stroke-width="2.5"
+      stroke-linejoin="round" stroke-linecap="round"/>
+    ${marcas}${etiquetas}`);
+}
+
+/** Barras verticales. */
+function gBarras(datos, {alto=180, color=PAL.tinta, formato=v=>v}={}) {
+  if (!datos.length) return "";
+  const w = 620, h = alto, mx = 46, my = 16;
+  const max = Math.max(...datos.map(d => d.v)) * 1.12 || 1;
+  const ancho = (w - mx - 14) / datos.length;
+  const bw = Math.min(38, ancho * 0.62);
+
+  const rejilla = [0, .5, 1].map(f => {
+    const v = max * f, y = my + (1 - f) * (h - my * 2);
+    return `<line x1="${mx}" y1="${y}" x2="${w-14}" y2="${y}" stroke="${PAL.suave}"/>
+            <text x="${mx-8}" y="${y+4}" text-anchor="end" font-size="11"
+              fill="${PAL.acero}">${formato(Math.round(v))}</text>`;
+  }).join("");
+
+  const barras = datos.map((d, i) => {
+    const x = mx + i * ancho + (ancho - bw) / 2;
+    const alt = (d.v / max) * (h - my * 2);
+    const y = h - my - alt;
+    return `<rect x="${x}" y="${y}" width="${bw}" height="${Math.max(1,alt)}" rx="3"
+      fill="${d.color || color}"><title>${d.e}: ${formato(d.v)}</title></rect>
+      <text x="${x + bw/2}" y="${h-2}" text-anchor="middle" font-size="11"
+        fill="${PAL.acero}">${d.e}</text>`;
+  }).join("");
+
+  return svg(w, h, rejilla + barras);
+}
+
+/** Barras horizontales, para rankings con nombres largos. */
+function gBarrasH(datos, {color=PAL.tinta, formato=v=>v}={}) {
+  if (!datos.length) return "";
+  const w = 620, fila = 30, h = datos.length * fila + 8;
+  const mx = 190;
+  const max = Math.max(...datos.map(d => d.v)) || 1;
+
+  return svg(w, h, datos.map((d, i) => {
+    const y = i * fila + 6;
+    const ancho = (d.v / max) * (w - mx - 76);
+    return `<text x="${mx-10}" y="${y+14}" text-anchor="end" font-size="12"
+        fill="${PAL.tinta}">${esc(d.e.length>26 ? d.e.slice(0,25)+"…" : d.e)}</text>
+      <rect x="${mx}" y="${y+3}" width="${Math.max(2,ancho)}" height="16" rx="3"
+        fill="${d.color || color}"><title>${esc(d.e)}: ${formato(d.v)}</title></rect>
+      <text x="${mx + ancho + 8}" y="${y+16}" font-size="12" fill="${PAL.acero}"
+        >${formato(d.v)}</text>`;
+  }).join(""));
+}
+
+/** Rosco, para composiciones. */
+function gDonut(segmentos, {alto=190, centro=""}={}) {
+  const total = segmentos.reduce((s, x) => s + x.v, 0) || 1;
+  const w = 620, h = alto, cx = 95, cy = h/2, r = 70, gr = 22;
+  let angulo = -Math.PI / 2;
+
+  const arcos = segmentos.map(s => {
+    const barrido = (s.v / total) * Math.PI * 2;
+    const fin = angulo + barrido;
+    const grande = barrido > Math.PI ? 1 : 0;
+    const p = (rad, a) => `${cx + rad*Math.cos(a)},${cy + rad*Math.sin(a)}`;
+    const d = `M${p(r,angulo)} A${r},${r} 0 ${grande} 1 ${p(r,fin)}
+               L${p(r-gr,fin)} A${r-gr},${r-gr} 0 ${grande} 0 ${p(r-gr,angulo)} Z`;
+    angulo = fin;
+    return `<path d="${d}" fill="${s.color}"><title>${esc(s.e)}: ${
+      Math.round(s.v/total*100)}%</title></path>`;
+  }).join("");
+
+  const leyenda = segmentos.map((s, i) => `
+    <rect x="205" y="${h/2 - segmentos.length*13 + i*26 + 2}" width="10" height="10"
+      rx="2" fill="${s.color}"/>
+    <text x="222" y="${h/2 - segmentos.length*13 + i*26 + 11}" font-size="12.5"
+      fill="${PAL.tinta}">${esc(s.e)}</text>
+    <text x="600" y="${h/2 - segmentos.length*13 + i*26 + 11}" font-size="12.5"
+      text-anchor="end" fill="${PAL.acero}">${Math.round(s.v/total*100)}%</text>`).join("");
+
+  const texto = centro ? `<text x="${cx}" y="${cy-2}" text-anchor="middle"
+      font-size="19" font-weight="600" fill="${PAL.tinta}">${centro}</text>
+    <text x="${cx}" y="${cy+16}" text-anchor="middle" font-size="11"
+      fill="${PAL.acero}">del total</text>` : "";
+
+  return svg(w, h, arcos + texto + leyenda);
+}
+
+/** Miniatura de tendencia, para meter dentro de un KPI. */
+function chispa(valores, color=PAL.marca) {
+  if (valores.length < 2) return "";
+  const w = 90, h = 26;
+  const max = Math.max(...valores), min = Math.min(...valores);
+  const puntos = valores.map((v, i) =>
+    `${i*(w/(valores.length-1))},${h - 3 - ((v-min)/((max-min)||1))*(h-6)}`).join(" ");
+  return `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}"
+    style="display:block;margin-top:6px"><polyline points="${puntos}" fill="none"
+    stroke="${color}" stroke-width="2" stroke-linejoin="round"/></svg>`;
+}
+
+/** Barra de progreso hacia un objetivo. */
+function gMeta(valor, objetivo, sentido) {
+  const pct = sentido === "mayor"
+    ? Math.min(100, valor / objetivo * 100)
+    : Math.min(100, objetivo / Math.max(valor, 0.01) * 100);
+  const color = pct >= 100 ? PAL.exito : pct >= 80 ? PAL.aviso : PAL.marca;
+  return `<div class="barra" style="margin-top:8px">
+    <span style="width:${pct}%;background:${color}"></span></div>`;
+}
+
+/* ---------- Series reales del histórico ---------- */
+const SERIE_ANIOS = [
+  {e:"16",v:5177,x:33.5,m:45},{e:"17",v:5282,x:31.7,m:50},{e:"18",v:4918,x:31.6,m:48},
+  {e:"19",v:4640,x:32.1,m:58},{e:"20",v:4886,x:24.8,m:60},{e:"21",v:4417,x:24.1,m:70},
+  {e:"22",v:3358,x:26.0,m:90},{e:"23",v:3937,x:22.5,m:95},{e:"24",v:4606,x:19.3,m:90},
+  {e:"25",v:3534,x:22.9,m:110},{e:"26",v:2330,x:22.0,m:105},
+];
+
+const TOP_CLIENTES = [
+  {e:"Industrias YUK",        v:20744765, x:25.6},
+  {e:"Chains & Sprockets",    v:3416656,  x:8.7},
+  {e:"Bea Transmisión 98",    v:1771063,  x:16.1},
+  {e:"Renold Iberia",         v:1394935,  x:16.9},
+  {e:"Cadenas Regina España", v:904312,   x:34.9},
+  {e:"Bemsa 2010",            v:852652,   x:27.0},
+  {e:"Ibertrans Cadena",      v:760379,   x:27.6},
+];
+
+const ELASTICIDAD = [
+  {e:"−15%",v:31.6},{e:"−5/15%",v:29.4},{e:"mediana",v:35.5},
+  {e:"+5/15%",v:28.0},{e:"+15/35%",v:26.4},{e:"+35%",v:20.0},
+];
+
+const CARGA = [
+  {e:"FRESA-1",v:21.4},{e:"TORNO-1",v:12.4},{e:"FRESA-2",v:8.1},
+  {e:"RECT-1",v:4.6},{e:"TORNO-2",v:0.9},
+];
+
+/* ============================================================
+   NAVEGACIÓN
+   ============================================================ */
+const MENU = [
+  { id:"panel",     icono:"▦", txt:"Panel" },
+  { id:"peticion",  icono:"+",  txt:"Nueva petición" },
+  { id:"avisos",    icono:"!",  txt:"Avisos" },
+  { id:"ofertas",   icono:"▤", txt:"Ofertas" },
+  { id:"kpis",      icono:"◔", txt:"Indicadores" },
+  { id:"asistente", icono:"?",  txt:"Asistente" },
+  { id:"mapa",      icono:"⊞", txt:"Mapa de planta" },
+  { id:"planos",    icono:"◳", txt:"Planos" },
+  { id:"taller",    icono:"⚙", txt:"Taller" },
+  { id:"clientes",  icono:"◉", txt:"Clientes" },
+  { id:"ajustes",   icono:"⚒", txt:"Ajustes" },
+];
+
+var ruta = { pantalla:"panel", id:null };
+var filtroVia = null, busqueda = "";
+
+function irA(pantalla, id = null) {
+  ruta = { pantalla, id };
+  window.scrollTo(0, 0);
+  pintar();
+}
+
+function pintarLateral() {
+  document.getElementById("lateral").innerHTML =
+    `<div class="logo">L</div>` +
+    MENU.map(m => `<button class="nav ${ruta.pantalla===m.id||(m.id==="ofertas"&&ruta.pantalla==="ficha")?"activo":""}"
+        title="${m.txt}" onclick="irA('${m.id}')">${m.icono}</button>`).join("");
+}
+
+/* ============================================================
+   PANTALLAS
+   ============================================================ */
+
+function vistaPanel() {
+  const borradores = OFERTAS.filter(o => o.estado === "borrador");
+  const importe = borradores.reduce((s,o) => s + (o.precio||0), 0);
+  const sinPrecio = borradores.filter(o => o.precio == null).length;
+  const criticos = AVISOS.filter(a => a.u === "critica");
+
+  const anios = SERIE_ANIOS.map(a => ({e:"20"+a.e, v:a.x}));
+  const ofertas = SERIE_ANIOS.slice(-6).map(a => ({e:"20"+a.e, v:a.v}));
+  const otros = TOP_CLIENTES.slice(4).reduce((s,c)=>s+c.v,0) + 2700000;
+  const donut = [
+    {e:"Industrias YUK", v:TOP_CLIENTES[0].v, color:PAL.tinta},
+    {e:"Chains & Sprockets", v:TOP_CLIENTES[1].v, color:PAL.marca},
+    {e:"Bea Transmisión", v:TOP_CLIENTES[2].v, color:PAL.acero},
+    {e:"Renold Iberia", v:TOP_CLIENTES[3].v, color:"#9AA1A8"},
+    {e:"Resto (266 clientes)", v:otros, color:PAL.suave},
+  ];
+
+  return `
+  <div class="cabecera">
+    <div><h1>Panel</h1>
+      <p>${borradores.length} ofertas por revisar · ${criticos.length} avisos urgentes</p></div>
+    <button class="btn btn-sec" onclick="irA('avisos')">Ver todos los avisos</button>
+  </div>
+
+  <div style="padding:0 24px">
+    <div class="hero">
+      <div><div class="e">Tasa de éxito</div><div class="v r">27,0 %</div>
+        <div class="p">Objetivo 40 %</div>${chispa(SERIE_ANIOS.map(a=>a.x), "#FF7A6B")}</div>
+      <div><div class="e">Ofertado</div><div class="v">34,7 M€</div>
+        <div class="p">Histórico completo</div></div>
+      <div><div class="e">Ganado</div><div class="v">6,2 M€</div>
+        <div class="p">18,0 % ponderado</div></div>
+      <div><div class="e">En revisión</div><div class="v">${eurCorto(importe)}</div>
+        <div class="p">${borradores.length} ofertas</div></div>
+      <div><div class="e">Necesitan persona</div><div class="v r">${sinPrecio}</div>
+        <div class="p">El sistema no da precio</div></div>
+    </div>
+  </div>
+
+  ${criticos.length ? `
+  <div style="padding:16px 24px 0">
+    ${criticos.map(a => `
+      <div class="aviso-c critica" style="margin-bottom:8px">
+        <div class="cuerpo">
+          <div class="t">${esc(a.t)}</div>
+          <div class="a">→ ${esc(a.a)}</div>
+        </div>
+        <span class="chip rojo" style="align-self:center">${ROLES[a.rol]}</span>
+      </div>`).join("")}
+  </div>` : ""}
+
+  <div style="padding:16px 24px">
+    <div class="g2">
+      <div class="tarjeta">
+        <h3>La tasa de éxito lleva diez años bajando</h3>
+        <div class="sub2">Porcentaje de ofertas aceptadas, por año</div>
+        ${gLinea(anios, {sufijo:"%"})}
+      </div>
+      <div class="tarjeta">
+        <h3>Un cliente es el 60% de la facturación</h3>
+        <div class="sub2">Reparto del importe ganado</div>
+        ${gDonut(donut, {centro:"59,7%"})}
+      </div>
+    </div>
+
+    <div class="g2" style="margin-top:16px">
+      <div class="tarjeta">
+        <h3>Volumen de ofertas</h3>
+        <div class="sub2">Últimos seis años. 2026 va por meses</div>
+        ${gBarras(ofertas, {formato:v => v.toLocaleString("es-ES")})}
+      </div>
+      <div class="tarjeta">
+        <h3>Carga del taller</h3>
+        <div class="sub2">Días de cola por máquina. Fresa 1 marca el plazo de la casa</div>
+        ${gBarrasH(CARGA.map(c => ({...c,
+           color: c.v > 15 ? PAL.marca : c.v > 8 ? PAL.aviso : PAL.acero})),
+           {formato: v => v + " d"})}
+      </div>
+    </div>
+
+    <section class="card" style="margin-top:16px">
+      <header><h2>Ofertas pendientes</h2>
+        <button class="btn btn-sec" style="height:30px;font-size:13px"
+          onclick="irA('ofertas')">Ver todas</button></header>
+      <table><tbody>
+      ${borradores.slice(0,5).map(o => `
+        <tr class="pulsable" onclick="irA('ficha',${o.id})">
+          <td><div style="font-weight:500">${esc(cliente(o.cliente).nombre)}</div>
+              <div class="sub">${esc(o.ref)} · ${o.cantidad} ud</div></td>
+          <td>${chipVia(o.via)} ${bloqueantes(o)?'<span style="color:var(--marca)">⚠</span>':""}</td>
+          <td class="der cifra" style="font-weight:500">
+            ${o.precio ? eur(o.precio) : '<span style="color:var(--tinta-tenue);font-weight:400">sin precio</span>'}</td>
+          <td class="der cifra sub" style="width:96px">${fechaCorta(o.comprometible)}</td>
+        </tr>`).join("")}
+      </tbody></table>
+    </section>
+  </div>`;
+}
+
+function vistaOfertas() {
+  const q = busqueda.trim().toLowerCase();
+  const lista = OFERTAS.filter(o =>
+    o.estado === "borrador" &&
+    (!filtroVia || o.via === filtroVia) &&
+    (!q || (cliente(o.cliente).nombre + " " + o.ref + " " + o.desc).toLowerCase().includes(q)));
+
+  const botones = [[null,"Todas"],["A","Ya la hicimos"],["B","Parecidas"],["C","Necesitan persona"]];
+
+  return `
+  <div class="cabecera">
+    <div><h1>Ofertas</h1><p>Propuestas pendientes de tu revisión</p></div>
+    <input class="campo" style="width:260px" id="buscador" placeholder="Cliente o referencia…"
+           value="${esc(busqueda)}" oninput="busqueda=this.value;pintar();document.getElementById('buscador').focus()">
+  </div>
+  <div style="padding:0 24px;display:flex;gap:8px">
+    ${botones.map(([v,t]) => `<button class="filtro ${filtroVia===v?"activo":""}"
+        onclick="filtroVia=${v?`'${v}'`:"null"};pintar()">${t}</button>`).join("")}
+  </div>
+  <div style="padding:16px 24px">
+    <section class="card">
+      ${lista.length === 0 ? `<div class="vacio"><strong>Nada pendiente por aquí</strong>
+          Cuando entre una petición nueva aparecerá en esta lista.</div>` : `
+      <table>
+        <thead><tr>
+          <th>Cliente</th><th>Pieza</th><th>Vía</th>
+          <th class="der">Precio</th><th class="der">Confianza</th><th class="der">Entrega</th>
+        </tr></thead>
+        <tbody>
+        ${lista.map(o => `
+          <tr class="pulsable" onclick="irA('ficha',${o.id})">
+            <td><div style="font-weight:500">${esc(cliente(o.cliente).nombre)}</div>
+                <div class="sub">${o.cantidad} ud</div></td>
+            <td><div>${esc(o.ref)}</div><div class="sub">${esc(o.desc)}</div></td>
+            <td>${chipVia(o.via)} ${bloqueantes(o)?'<span style="color:var(--marca)">⚠</span>':""}</td>
+            <td class="der cifra" style="font-weight:500">
+              ${o.precio ? eur(o.precio) : '<span style="color:var(--tinta-tenue);font-weight:400">sin precio</span>'}</td>
+            <td class="der cifra sub">${pc(o.confianza)}</td>
+            <td class="der cifra sub">${fechaCorta(o.comprometible)}</td>
+          </tr>`).join("")}
+        </tbody>
+      </table>`}
+    </section>
+    <p class="nota" style="margin-top:12px">${lista.length} oferta${lista.length===1?"":"s"} en borrador.
+       Ninguna se ha enviado a nadie.</p>
+  </div>`;
+}
+
+function vistaFicha(id) {
+  const o = OFERTAS.find(x => x.id === id);
+  if (!o) return `<div class="vacio"><strong>Oferta no encontrada</strong></div>`;
+  const c = cliente(o.cliente);
+  const sinPrecio = o.precio == null;
+  const conf = Math.round(o.confianza * 100);
+  const d = o.desglose || {};
+  const margen = o.precio && o.coste ? Math.round((o.precio - o.coste) / o.coste * 100) : null;
+  const textoConf = conf > 80 ? "Pieza conocida y comparables sólidos. Puedes fiarte del número."
+    : conf > 55 ? "Hay comparables, pero no exactos. Merece un vistazo al desglose."
+    : "Poco apoyo en el histórico. Esta la tienes que valorar tú.";
+
+  return `
+  <header style="padding:20px 24px 16px;border-bottom:1px solid var(--borde);background:#fff">
+    <button class="sub" style="margin-bottom:10px" onclick="irA('ofertas')">← Ofertas</button>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:24px">
+      <div style="min-width:0">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <h1 style="font-size:20px;font-weight:600">${esc(c.nombre)}</h1>
+          ${chipVia(o.via)}
+          <span class="chip gris sinpunto">${o.estado}</span>
+        </div>
+        <p class="sub" style="margin-top:4px;font-size:14px">
+          ${esc(o.ref)} · ${esc(o.desc)} · ${o.cantidad} unidades</p>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div class="etiqueta">Precio propuesto</div>
+        <div class="cifra" style="font-size:30px;font-weight:600;margin-top:2px">
+          ${sinPrecio ? '<span style="font-size:20px;color:var(--tinta-tenue)">Sin precio</span>' : eur(o.precio)}</div>
+        ${sinPrecio ? "" : `<div class="sub cifra">Banda ${eur(o.min)} — ${eur(o.max)}</div>`}
+      </div>
+    </div>
+  </header>
+
+  <div class="rejilla">
+    <div class="pila">
+      ${sinPrecio ? `<section class="card"><div style="padding:16px">
+        <div class="aviso bloqueante"><span class="ic">!</span><span>
+          <strong>No propongo precio para esta pieza.</strong> Es nueva o el plano tiene carencias
+          que impiden calcular con honestidad. Abajo tienes el expediente y las preguntas para el cliente.
+        </span></div></div></section>` : ""}
+
+      ${sinPrecio ? "" : `
+      <section class="card">
+        <header><h2>Desglose del coste</h2><span class="sub">modelo 2026.09-a</span></header>
+        <div style="padding:16px">
+          <div class="fila"><span class="k">Material</span><span class="cifra">${eur(d.material)}</span></div>
+          <div class="fila"><span class="k">Máquina</span><span class="cifra">${eur(d.maquina)}</span></div>
+          <div class="fila"><span class="k">Preparación</span><span class="cifra">${eur(d.preparacion)}</span></div>
+          <div class="fila"><span class="k">Subcontratas</span><span class="cifra">${eur(d.externo)}</span></div>
+          <div class="fila"><span class="k">Indirectos</span><span class="cifra">${eur(d.indirectos)}</span></div>
+          <div style="border-top:1px solid var(--borde);margin-top:10px;padding-top:10px">
+            <div class="fila"><span class="k">Coste total</span>
+              <span class="cifra" style="font-weight:600">${eur(o.coste)}</span></div>
+            <div class="fila"><span class="k">Margen sobre coste</span>
+              <span class="cifra" style="font-weight:600">${margen} %</span></div>
+            <div class="fila"><span class="k">Carga de máquina</span>
+              <span class="cifra sub">${horas(o.minutos)}</span></div>
+          </div>
+        </div>
+      </section>`}
+
+      <section class="card">
+        <header><h2>Piezas en las que me apoyo</h2>
+          <span class="sub">${o.comparables.length} comparables</span></header>
+        ${o.comparables.length === 0 ? `<div class="vacio"><strong>Sin comparables</strong>
+            No he encontrado piezas parecidas en el histórico.</div>` : `
+        <table>
+          <thead><tr><th>Pieza</th><th class="der">Parecido</th>
+            <th class="der">Se ofertó</th><th class="der">Horas reales</th><th class="der">Resultado</th></tr></thead>
+          <tbody>
+          ${o.comparables.map(x => `
+            <tr>
+              <td><div style="font-weight:500">${esc(x.ref)}</div>
+                  <div class="sub">${esc(x.desc)} · ${x.cuando}</div></td>
+              <td class="der">
+                <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px">
+                  <div class="barra" style="width:56px"><span style="width:${x.sim*100}%;background:var(--tinta-suave)"></span></div>
+                  <span class="cifra sub" style="width:34px">${pc(x.sim)}</span></div></td>
+              <td class="der cifra">${eur(x.precio)}</td>
+              <td class="der cifra sub">${horas(x.min)}</td>
+              <td class="der"><span class="chip ${x.res==="ganada"?"verde":"rojo"}">${x.res}</span></td>
+            </tr>`).join("")}
+          </tbody>
+        </table>`}
+      </section>
+
+      <section class="card">
+        <header><h2>Revisión del plano</h2><span class="sub">${esc(o.plano)}</span></header>
+        <div style="padding:16px;display:flex;flex-direction:column;gap:8px">
+          ${o.hallazgos.length === 0 ? `<div class="aviso menor"><span class="ic">i</span>
+              <span>No he encontrado problemas en los catorce puntos que reviso.
+              Eso no certifica que el plano esté completo.</span></div>`
+            : o.hallazgos.map(h => `<div class="aviso ${HALLAZGOS[h].g}">
+                <span class="ic">${HALLAZGOS[h].g==="menor"?"i":"!"}</span>
+                <span>${HALLAZGOS[h].t}</span></div>`).join("")}
+          <div class="nota" style="display:flex;gap:16px;padding-top:4px">
+            <span>Método: ${o.vectorial ? "texto vectorial" : "visión (plano escaneado)"}</span>
+            <span>Fiabilidad de la lectura: ${pc(o.fiabilidad)}</span>
+          </div>
+        </div>
+      </section>
+
+      ${o.hipotesis.length === 0 ? "" : `
+      <section class="card">
+        <header><h2>Hipótesis asumidas</h2></header>
+        <div style="padding:16px">
+          ${o.hipotesis.map(h => `<div style="padding:2px 0">· ${esc(h)}</div>`).join("")}
+          <p class="nota" style="margin-top:10px">Van escritas en la oferta.
+             Si el cliente difiere, se revisa el precio.</p>
+        </div>
+      </section>`}
+
+      ${o.correcciones.length === 0 ? "" : `
+      <section class="card">
+        <header><h2>Correcciones que hiciste</h2></header>
+        <div>
+          ${o.correcciones.map(x => `
+            <div style="padding:12px 16px;border-bottom:1px solid var(--borde);
+                        display:flex;justify-content:space-between;gap:16px">
+              <div><div style="font-weight:500">precio propuesto</div>
+                   ${x.motivo ? `<div class="sub">${esc(x.motivo)}</div>` : ""}</div>
+              <div class="cifra der" style="flex-shrink:0">
+                <span class="sub" style="text-decoration:line-through">${eur(x.antes)}</span>
+                <span class="sub" style="margin:0 8px">→</span>
+                <span style="font-weight:600">${eur(x.despues)}</span></div>
+            </div>`).join("")}
+        </div>
+      </section>`}
+    </div>
+
+    <div class="pila">
+      <section class="card">
+        <header><h2>Confianza</h2></header>
+        <div style="padding:16px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
+            <span class="cifra" style="font-size:24px;font-weight:600">${conf} %</span>
+            ${chipVia(o.via)}
+          </div>
+          <div class="barra"><span style="width:${conf}%;background:${tonoBarra(conf)}"></span></div>
+          <p class="nota" style="margin-top:12px">${textoConf}</p>
+        </div>
+      </section>
+
+      <section class="card">
+        <header><h2>Plazo de entrega</h2></header>
+        <div style="padding:16px">
+          <div class="fila"><span class="k">Óptimo</span><span class="cifra sub">${fecha(o.optimo)}</span></div>
+          <div class="fila"><span class="k">Comprometible</span>
+            <span class="cifra" style="font-weight:600">${fecha(o.comprometible)}</span></div>
+          <p class="nota" style="margin-top:10px">Al cliente se le da la fecha comprometible:
+             es la que se cumple ocho de cada diez veces.</p>
+        </div>
+      </section>
+
+      <section class="card">
+        <header><h2>Petición original</h2></header>
+        <div style="padding:16px">
+          <div class="fila"><span class="k">De</span><span>${esc(o.remitente)}</span></div>
+          <div class="fila"><span class="k">Recibida</span><span class="cifra">${fecha(o.recibida)}</span></div>
+          <p class="nota" style="margin-top:8px">✉ ${esc(o.asunto)}</p>
+        </div>
+      </section>
+
+      ${o.estado !== "borrador" ? `
+        <div class="card" style="padding:16px">
+          <p class="nota">Esta oferta ya está <strong>${o.estado}</strong>.
+             Cualquier cambio a partir de aquí queda registrado en la auditoría.</p>
+        </div>` : `
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-prim" style="flex:1" ${sinPrecio?"disabled":""}
+                  onclick="aprobar(${o.id})">✓ Aprobar</button>
+          <button class="btn btn-sec" onclick="alternarCorreccion()">✎ Corregir</button>
+        </div>
+        <div id="formCorreccion" style="display:none">
+          <div class="card" style="padding:16px;display:flex;flex-direction:column;gap:12px">
+            <div>
+              <label class="etiqueta">Precio corregido</label>
+              <input class="campo cifra" style="margin-top:6px" type="number" step="0.01"
+                     id="nuevoPrecio" value="${o.precio ?? ""}" oninput="validarPrecio(${o.id})">
+              <p class="nota" id="errPrecio" style="color:var(--marca);display:none;margin-top:4px"></p>
+            </div>
+            <div>
+              <label class="etiqueta">Por qué lo cambias</label>
+              <input class="campo" style="margin-top:6px" id="motivo" placeholder="Cliente habitual, pieza urgente…">
+              <p class="nota" style="margin-top:4px">Esto es lo que enseña al sistema tu criterio. Merece una línea.</p>
+            </div>
+            <button class="btn btn-marca" id="btnGuardar" onclick="corregir(${o.id})">Guardar corrección</button>
+          </div>
+        </div>
+        <button class="btn btn-sec" style="width:100%;color:var(--tinta-tenue)"
+                onclick="descartar(${o.id})">✕ Descartar</button>
+        <p class="nota" style="text-align:center">Aprobar no envía nada. El correo al cliente lo mandas tú.</p>`}
+    </div>
+  </div>`;
+}
+
+function vistaPlanos() {
+  const filas = OFERTAS.map(o => ({ o, bloq: bloqueantes(o) }));
+  return `
+  <div class="cabecera"><div><h1>Planos</h1>
+    <p>Lo que el sistema ha revisado en cada plano recibido</p></div></div>
+  <div class="kpis">
+    <div class="kpi"><div class="etiqueta">Planos revisados</div><div class="valor">${filas.length}</div></div>
+    <div class="kpi"><div class="etiqueta">Con carencias bloqueantes</div>
+      <div class="valor acento">${filas.filter(f=>f.bloq>0).length}</div></div>
+    <div class="kpi"><div class="etiqueta">Escaneados</div>
+      <div class="valor">${filas.filter(f=>!f.o.vectorial).length}</div>
+      <div class="pie">Lectura menos fiable</div></div>
+    <div class="kpi"><div class="etiqueta">Sin ningún hallazgo</div>
+      <div class="valor">${filas.filter(f=>f.o.hallazgos.length===0).length}</div></div>
+  </div>
+  <div style="padding:16px 24px">
+    <section class="card">
+      <table>
+        <thead><tr><th>Plano</th><th>Pieza</th><th>Lectura</th>
+          <th class="der">Fiabilidad</th><th>Hallazgos</th></tr></thead>
+        <tbody>
+        ${filas.map(({o,bloq}) => `
+          <tr class="pulsable" onclick="irA('ficha',${o.id})">
+            <td style="font-weight:500">${esc(o.plano)}</td>
+            <td>${esc(o.ref)}<div class="sub">${esc(cliente(o.cliente).nombre)}</div></td>
+            <td>${o.vectorial ? '<span class="chip verde">vectorial</span>'
+                              : '<span class="chip ambar">escaneado</span>'}</td>
+            <td class="der cifra sub">${pc(o.fiabilidad)}</td>
+            <td>${o.hallazgos.length === 0
+              ? '<span class="sub">sin hallazgos</span>'
+              : `${bloq?`<span class="chip rojo">${bloq} bloqueante${bloq>1?"s":""}</span> `:""}
+                 <span class="sub">${o.hallazgos.length} en total</span>`}</td>
+          </tr>`).join("")}
+        </tbody>
+      </table>
+    </section>
+    <p class="nota" style="margin-top:12px">El sistema afirma que falta algo; nunca certifica que un plano esté bien.</p>
+  </div>`;
+}
+
+function vistaTaller() {
+  return `
+  <div class="cabecera"><div><h1>Taller</h1>
+    <p>Carga real por centro de trabajo y simulador de capacidad</p></div></div>
+  <div style="padding:0 24px 16px">
+    <section class="card">
+      <header><h2>Capacidad y cola actual</h2></header>
+      <table>
+        <thead><tr><th>Centro</th><th class="der">Turnos</th><th class="der">Disponibilidad</th>
+          <th class="der">Cola</th><th class="der">Se libera en</th><th class="der">Tarifa</th></tr></thead>
+        <tbody>
+        ${CENTROS.map(c => {
+          if (c.externo) return `<tr><td style="font-weight:500">${c.cod}
+              <div class="sub">${c.nombre}</div></td>
+            <td class="der sub">—</td><td class="der sub">—</td><td class="der sub">—</td>
+            <td class="der cifra">${c.externo} días</td><td class="der sub">subcontrata</td></tr>`;
+          const dl = c.cola / (c.horas*60*c.factor);
+          return `<tr>
+            <td style="font-weight:500">${c.cod}<div class="sub">${c.nombre}</div></td>
+            <td class="der cifra">${(c.horas/8).toFixed(0)}</td>
+            <td class="der cifra ${c.factor<0.68?"":""}">${Math.round(c.factor*100)} %</td>
+            <td class="der cifra">${horas(c.cola)}</td>
+            <td class="der cifra" style="font-weight:500">${dl.toFixed(1)} días</td>
+            <td class="der cifra sub">${c.tarifa.toFixed(2)} €/min</td>
+          </tr>`;
+        }).join("")}
+        </tbody>
+      </table>
+    </section>
+    <p class="nota" style="margin-top:12px">La disponibilidad sale del histórico de partes, no del horario teórico.
+       Es la variable que más afecta a los plazos.</p>
+  </div>
+
+  <div style="padding:0 24px">
+    <section class="card">
+      <header><h2>Simulador: ¿y si entra este pedido?</h2></header>
+      <div style="padding:16px">
+        <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+          <div><label class="etiqueta">Centro</label>
+            <select class="campo" style="width:180px;margin-top:6px" id="simCentro" onchange="simular()">
+              ${CENTROS.filter(c=>!c.externo).map(c=>`<option value="${c.cod}">${c.cod}</option>`).join("")}
+            </select></div>
+          <div><label class="etiqueta">Piezas</label>
+            <input class="campo cifra" style="width:110px;margin-top:6px" type="number" min="1"
+                   id="simCantidad" value="300" oninput="simular()"></div>
+          <div><label class="etiqueta">Minutos por pieza</label>
+            <input class="campo cifra" style="width:130px;margin-top:6px" type="number" min="1"
+                   id="simMinutos" value="7" oninput="simular()"></div>
+          <button class="btn btn-prim" onclick="simular()">Simular</button>
+        </div>
+        <div id="simResultado" style="margin-top:16px"></div>
+      </div>
+    </section>
+  </div>`;
+}
+
+function vistaClientes() {
+  return `
+  <div class="cabecera"><div><h1>Clientes</h1>
+    <p>Reglas de cada uno: sin esto, las facturas se rechazan o llegan tarde</p></div></div>
+  <div style="padding:0 24px 16px">
+    <section class="card">
+      <table>
+        <thead><tr><th>Cliente</th><th>Dominio</th><th>Corte de facturación</th>
+          <th>Exige nº pedido</th><th>Portal</th>
+          <th class="der">Facturado 12 m</th><th class="der">Margen</th></tr></thead>
+        <tbody>
+        ${CLIENTES.map(c => `
+          <tr>
+            <td style="font-weight:500">${esc(c.nombre)}<div class="sub">${c.nif}</div></td>
+            <td class="sub">${c.dominio}</td>
+            <td>${c.corte}</td>
+            <td>${c.pedido ? '<span class="chip ambar">sí</span>' : '<span class="sub">no</span>'}</td>
+            <td>${c.portal ? '<span class="chip ambar">sí</span>' : '<span class="sub">no</span>'}</td>
+            <td class="der cifra">${eurCorto(c.facturado)}</td>
+            <td class="der cifra" style="color:${c.margen<25?"var(--marca)":"inherit"};font-weight:500">${c.margen} %</td>
+          </tr>`).join("")}
+        </tbody>
+      </table>
+    </section>
+    <p class="nota" style="margin-top:12px">
+      Estructuras Murcia está al 22 % de margen, muy por debajo de la media. Merece una revisión de precios.</p>
+  </div>`;
+}
+
+function vistaAjustes() {
+  return `
+  <div class="cabecera"><div><h1>Ajustes</h1>
+    <p>Los parámetros que entran en cada cálculo</p></div></div>
+  <div class="rejilla">
+    <div class="pila">
+      <section class="card">
+        <header><h2>Parámetros de cálculo</h2></header>
+        <div style="padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div><label class="etiqueta">Merma de material</label>
+            <input class="campo cifra" style="margin-top:6px" value="10 %" readonly></div>
+          <div><label class="etiqueta">Costes indirectos</label>
+            <input class="campo cifra" style="margin-top:6px" value="10 %" readonly></div>
+          <div><label class="etiqueta">Margen objetivo</label>
+            <input class="campo cifra" style="margin-top:6px" value="35 %" readonly></div>
+          <div><label class="etiqueta">Colchón de plazo</label>
+            <input class="campo cifra" style="margin-top:6px" value="60 %" readonly></div>
+        </div>
+      </section>
+      <section class="card">
+        <header><h2>Reglas duras</h2></header>
+        <div style="padding:16px;display:flex;flex-direction:column;gap:8px">
+          <div class="aviso menor"><span class="ic">i</span><span>Nunca por debajo del coste calculado.</span></div>
+          <div class="aviso menor"><span class="ic">i</span><span>Cliente nuevo obliga a revisión humana.</span></div>
+          <div class="aviso menor"><span class="ic">i</span><span>Cantidad fuera de rango histórico obliga a revisión humana.</span></div>
+          <div class="aviso menor"><span class="ic">i</span><span>El sistema no tiene permisos para enviar correo al exterior.</span></div>
+          <p class="nota">Estas reglas viven en la base de datos, no en la aplicación.
+             Un fallo del código no puede saltárselas.</p>
+        </div>
+      </section>
+    </div>
+    <div class="pila">
+      <section class="card">
+        <header><h2>Versión del modelo</h2></header>
+        <div style="padding:16px">
+          <div class="fila"><span class="k">Activa</span><span class="cifra" style="font-weight:600">2026.09-a</span></div>
+          <div class="fila"><span class="k">Acierto vía A</span><span class="cifra">84 %</span></div>
+          <div class="fila"><span class="k">Acierto vía B</span><span class="cifra">61 %</span></div>
+          <div class="fila"><span class="k">Correcciones registradas</span><span class="cifra">${
+            OFERTAS.reduce((s,o)=>s+o.correcciones.length,0)}</span></div>
+          <p class="nota" style="margin-top:10px">Toda oferta guarda con qué versión se calculó.
+             Sin eso, la auditoría es imposible.</p>
+        </div>
+      </section>
+      <section class="card">
+        <header><h2>Auditoría</h2></header>
+        <div style="padding:16px">
+          <div class="aviso menor"><span class="ic">✓</span>
+            <span>Cadena de eventos intacta. Ningún registro alterado.</span></div>
+          <p class="nota" style="margin-top:10px">Cada evento encadena el hash del anterior.
+             Modificar el pasado se detecta.</p>
+        </div>
+      </section>
+    </div>
+  </div>`;
+}
+
+
+/* ============================================================
+   VISTA: AVISOS
+   ============================================================ */
+var rolActivo = null;
+
+function vistaAvisos() {
+  const lista = rolActivo ? AVISOS.filter(a => a.rol === rolActivo) : AVISOS;
+  const criticos = AVISOS.filter(a => a.u === "critica").length;
+  const porRol = {};
+  AVISOS.forEach(a => porRol[a.rol] = (porRol[a.rol] || 0) + 1);
+
+  return `
+  <div class="cabecera">
+    <div><h1>Avisos</h1>
+      <p>${AVISOS.length} cosas que hacer hoy${criticos ? `, ${criticos} urgentes` : ""}</p></div>
+  </div>
+
+  <div style="padding:0 24px;display:flex;gap:8px;flex-wrap:wrap">
+    <button class="filtro ${rolActivo===null?"activo":""}"
+      onclick="rolActivo=null;pintar()">Todos (${AVISOS.length})</button>
+    ${Object.entries(ROLES).map(([id,txt]) => `
+      <button class="filtro ${rolActivo===id?"activo":""}"
+        onclick="rolActivo='${id}';pintar()">${txt} (${porRol[id]||0})</button>`).join("")}
+  </div>
+
+  <div style="padding:16px 24px">
+    ${lista.length === 0 ? `<div class="card"><div class="vacio">
+        <strong>Nada pendiente para ese rol</strong>
+        Buena señal: significa que no hay nada atascado.</div></div>` :
+    lista.map(a => `
+      <div class="aviso-c ${a.u}">
+        <div class="cuerpo">
+          <div class="t">${esc(a.t)}</div>
+          <div class="d">${esc(a.d)}</div>
+          <div class="a">→ ${esc(a.a)}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;display:flex;
+                    flex-direction:column;gap:8px;align-items:flex-end">
+          <span class="chip ${a.u==="critica"?"rojo":a.u==="alta"?"ambar":"gris"}">${a.u}</span>
+          <span class="sub" style="font-size:11px">${ROLES[a.rol]}</span>
+          ${a.correo ? `<button class="btn btn-sec" style="height:28px;font-size:12px"
+             onclick="verCorreo()">Ver correo</button>` : ""}
+        </div>
+      </div>`).join("")}
+    <p class="nota" style="margin-top:14px">
+      Cada aviso lleva a quién le toca, qué hacer y para cuándo.
+      Un aviso sin acción concreta es ruido.</p>
+  </div>`;
+}
+
+function verCorreo() {
+  brindis("El sistema redacta el correo; enviarlo lo decides tú.");
+}
+
+/* ============================================================
+   VISTA: INDICADORES
+   ============================================================ */
+function estadoInd(i) {
+  if (i.v === null) return "sin";
+  if (i.o === null) return "informativo";
+  if (i.s === "mayor") return i.v >= i.o ? "bien" : i.v >= i.o*0.8 ? "regular" : "mal";
+  return i.v <= i.o ? "bien" : i.v <= i.o*1.5 ? "regular" : "mal";
+}
+
+function valorInd(i) {
+  if (i.v === null) return "sin dato";
+  if (i.u === "€") return eurCorto(i.v);
+  return `${i.v.toLocaleString("es-ES")} ${i.u}`;
+}
+
+function vistaKpis() {
+  const todos = Object.values(KPIS).flat();
+  const conDato = todos.filter(i => i.v !== null).length;
+
+  const estados = {bien:0, regular:0, mal:0, sin:0, informativo:0};
+  todos.forEach(i => estados[estadoInd(i)]++);
+
+  const donutEstado = [
+    {e:"En objetivo", v:estados.bien, color:PAL.exito},
+    {e:"Regular", v:estados.regular, color:PAL.aviso},
+    {e:"Fuera de objetivo", v:estados.mal, color:PAL.marca},
+    {e:"Informativos", v:estados.informativo, color:PAL.acero},
+    {e:"Sin dato", v:estados.sin, color:PAL.suave},
+  ].filter(x => x.v > 0);
+
+  const porBloque = Object.entries(KPIS).map(([b, l]) => ({
+    e: b, v: l.filter(i => i.v !== null).length,
+    color: l.filter(i => i.v !== null).length ? PAL.tinta : PAL.suave,
+  }));
+
+  return `
+  <div class="cabecera">
+    <div><h1>Indicadores</h1>
+      <p>${conDato} de ${todos.length} se pueden calcular con los datos de hoy</p></div>
+  </div>
+
+  <div style="padding:0 24px 16px">
+    <div class="g2">
+      <div class="tarjeta">
+        <h3>Estado de los indicadores</h3>
+        <div class="sub2">La mayoría no se puede calcular todavía</div>
+        ${gDonut(donutEstado, {centro:conDato + "/" + todos.length})}
+      </div>
+      <div class="tarjeta">
+        <h3>Qué se puede medir de cada bloque</h3>
+        <div class="sub2">Indicadores con dato disponible</div>
+        ${gBarrasH(porBloque, {formato: v => v + ""})}
+      </div>
+    </div>
+
+    <div class="aviso importante" style="margin:16px 0">
+      <span class="ic">!</span>
+      <span><strong>${todos.length - conDato} de ${todos.length} indicadores salen sin dato</strong>,
+      y no es un fallo: es el diagnóstico. Los comerciales salen porque tenemos los
+      presupuestos; todo lo que mide qué pasa en el taller necesita los partes de
+      trabajo, que están en el ERP. El dato que más desbloquea:
+      <strong>partes con inicio y fin</strong>.</span>
+    </div>
+
+    <div class="tarjeta" style="margin-bottom:16px">
+      <h3>Tasa de éxito y volumen, año a año</h3>
+      <div class="sub2">Menos ofertas y peor conversión, pero cada una vale más</div>
+      ${gLinea(SERIE_ANIOS.map(a => ({e:"20"+a.e, v:a.x})), {sufijo:"%", alto:170})}
+      <div style="margin-top:18px">
+        ${gBarras(SERIE_ANIOS.map(a => ({e:a.e, v:a.v})),
+          {alto:150, color:PAL.acero, formato:v => v.toLocaleString("es-ES")})}
+      </div>
+    </div>
+
+    <div class="g2">
+      <div class="tarjeta">
+        <h3>El precio influye, pero poco</h3>
+        <div class="sub2">Éxito según el precio frente a la mediana de piezas iguales</div>
+        ${gBarras(ELASTICIDAD.map(x => ({...x,
+          color: x.v > 30 ? PAL.exito : x.v > 25 ? PAL.acero : PAL.marca})),
+          {alto:170, formato: v => v + "%"})}
+        <p class="nota" style="margin-top:10px">Entre el extremo barato y el caro solo
+        hay 11,6 puntos. Bajar precios no salva las ofertas que se pierden.</p>
+      </div>
+      <div class="tarjeta">
+        <h3>Importe medio por oferta</h3>
+        <div class="sub2">Sube de 45 € a 105 €: menos operaciones y más grandes</div>
+        ${gLinea(SERIE_ANIOS.map(a => ({e:"20"+a.e, v:a.m})),
+          {sufijo:"€", color:PAL.tinta, alto:170, minCero:true})}
+      </div>
+    </div>
+
+    <div class="tarjeta" style="margin-top:16px">
+      <h3>Conversión por cliente</h3>
+      <div class="sub2">Facturado y tasa de éxito de cada uno</div>
+      ${gBarrasH(TOP_CLIENTES.map(c => ({e:c.e, v:Math.round(c.v/1000),
+         color: c.x < 12 ? PAL.marca : c.x > 30 ? PAL.exito : PAL.acero})),
+         {formato: v => eurCorto(v*1000)})}
+      <p class="nota" style="margin-top:10px">En rojo los que convierten por debajo del
+      12%: piden mucho y compran poco. En verde los que pasan del 30%.</p>
+    </div>
+
+    <h2 style="font-size:16px;font-weight:600;margin:26px 0 12px">Detalle</h2>
+    ${Object.entries(KPIS).map(([bloque, inds]) => `
+      <div class="bloque">
+        <h3>${esc(bloque)}
+          <span>${inds.filter(i=>i.v!==null).length} de ${inds.length} con dato</span></h3>
+        ${inds.map(i => {
+          const e = estadoInd(i);
+          return `<div class="ind">
+            <div style="display:flex;gap:10px;align-items:flex-start;min-width:0">
+              <span class="punto p-${e}" style="margin-top:6px"></span>
+              <div style="min-width:0">
+                <div class="n">${esc(i.n)}</div>
+                <div class="f">${esc(i.f)}${i.falta?` · falta: ${esc(i.falta)}`:""}</div>
+              </div>
+            </div>
+            <div class="v" style="min-width:120px">
+              <b style="color:${i.v===null?"var(--tinta-tenue)":"inherit"}">${valorInd(i)}</b>
+              ${i.o!==null?`<small>objetivo ${i.o} ${i.u}</small>`:""}
+              ${i.v!==null && i.o!==null ? gMeta(i.v, i.o, i.s) : ""}
+            </div>
+          </div>`;
+        }).join("")}
+      </div>`).join("")}
+  </div>`;
+}
+
+
+
+
+
+/* ============================================================
+   LECTURA DE FICHEROS EN EL NAVEGADOR
+   Sin librerías. El PDF se descomprime con DecompressionStream, que traen
+   Chrome, Edge y Firefox modernos. El STEP es texto plano.
+   ============================================================ */
+
+async function inflar(bytes){
+  /*
+    Los flujos de un PDF van comprimidos con deflate y el navegador sabe
+    descomprimirlos. Se construye el ReadableStream a mano en vez de usar
+    Blob.stream(): hay entornos donde ese método no existe y entonces la
+    lectura fallaba en silencio, que es lo peor que puede pasar aquí.
+  */
+  if (typeof DecompressionStream === "undefined") return null;
+  for (const fmt of ["deflate", "deflate-raw"]) {
+    try {
+      const entrada = new ReadableStream({
+        start(c){ c.enqueue(bytes); c.close(); }
+      });
+      const lector = entrada.pipeThrough(new DecompressionStream(fmt)).getReader();
+      const trozos = []; let total = 0;
+      for (;;) {
+        const {done, value} = await lector.read();
+        if (done) break;
+        trozos.push(value); total += value.length;
+      }
+      if (!total) continue;
+      const salida = new Uint8Array(total);
+      let o = 0;
+      for (const t of trozos) { salida.set(t, o); o += t.length; }
+      return salida;
+    } catch (e) { /* probamos el siguiente formato */ }
+  }
+  return null;
+}
+
+function aTexto(bytes){
+  return new TextDecoder("latin1").decode(bytes);
+}
+
+/** Saca el texto de los operadores Tj y TJ de un flujo de contenido. */
+function textoDeFlujo(s){
+  const trozos = [];
+  const re = /\((?:\\.|[^\\()])*\)/g;
+  let m;
+  while ((m = re.exec(s)) !== null) {
+    trozos.push(m[0].slice(1,-1)
+      .replace(/\\([()\\])/g, "$1")
+      .replace(/\\(\d{1,3})/g, (_,o)=>String.fromCharCode(parseInt(o,8))));
+  }
+  return trozos.join(" ");
+}
+
+async function extraerTextoPDF(buffer){
+  const bytes = new Uint8Array(buffer);
+  const crudo = aTexto(bytes);
+  let texto = "";
+  let flujos = 0, comprimidos = 0;
+
+  // Ojo: "endstream" contiene "stream". Sin excluirlo, el segundo flujo que
+  // se encuentra es basura y la extracción falla sin avisar.
+  const re = /(^|[^d])stream\r?\n/g;
+  let m;
+  while ((m = re.exec(crudo)) !== null) {
+    const ini = m.index + m[0].length;
+    let fin = crudo.indexOf("endstream", ini);
+    if (fin < 0) continue;
+    // El salto de línea que precede a "endstream" no es parte de los datos:
+    // si se deja, la descompresión falla por basura al final.
+    while (fin > ini && (crudo[fin-1] === "\n" || crudo[fin-1] === "\r")) fin--;
+    flujos++;
+    const cab = crudo.slice(Math.max(0, m.index-400), m.index);
+    const datos = bytes.subarray(ini, fin);
+    if (/FlateDecode/.test(cab)) {
+      comprimidos++;
+      const out = await inflar(datos);
+      if (out) texto += " " + textoDeFlujo(aTexto(out));
+    } else {
+      texto += " " + textoDeFlujo(aTexto(datos));
+    }
+  }
+  // Algunos PDF llevan el texto sin comprimir fuera de flujos
+  if (texto.trim().length < 20) texto += " " + textoDeFlujo(crudo);
+  return {texto: texto.replace(/\s+/g," ").trim(), flujos, comprimidos,
+          paginas: (crudo.match(/\/Type\s*\/Page[^s]/g)||[]).length || 1};
+}
+
+/** Comprueba qué falta en el texto extraído de un plano. */
+function revisarTextoPlano(texto){
+  const t = limpiarTxt(texto);
+  const hay = {
+    tol:    /ISO\s*2768|TOLERANCIA[S]?\s*GENERAL/.test(t),
+    ajuste: /\b[HJKNPhjknp][5-9]\b|±\s*0[.,]\d|\+0[.,]\d{2,}/.test(t),
+    mat:    MATERIALES.some(([,alias]) => alias.some(a => t.replace(/[\s\-]/g,"").includes(a.replace(/[\s\-]/g,"")))),
+    rug:    /\bRA\s*[\d.,]|RUGOSIDAD|\bN\s*[5-9]\b/.test(t),
+    trat:   /CROMAD|TEMPLAD|ZINCAD|NITRURAD|CEMENTAD|GALVANIZ|PINTAD|ANODIZ/.test(t),
+    rosca:  /\bM\d{1,2}\s*[XX]?\s*[\d.,]*\b|ROSCA/.test(t),
+    proy:   /PROYECCION|PROJECTION|DIEDRO|ISO\s*E\b|ISO\s*A\b/.test(t),
+    esc:    /ESCALA|SCALE|\b1\s*:\s*\d{1,3}\b/.test(t),
+  };
+  const faltan = CHECKS_PLANO.filter(c => !hay[c.id]).map(c => c.id);
+  return {hay, faltan, legible: t.length > 40};
+}
+
+/** Datos que se pueden aprovechar del propio plano. */
+function datosDePlano(texto){
+  const t = limpiarTxt(texto), d = {};
+  for (const [mat, alias] of MATERIALES.map(x=>[x[0],x[1]]))
+    if (alias.some(a => t.replace(/[\s\-]/g,"").includes(a.replace(/[\s\-]/g,"")))) { d.material = mat; break; }
+  let m;
+  if ((m = t.match(/Ø\s*(\d+(?:[.,]\d+)?)\s*[XX*]\s*(\d+(?:[.,]\d+)?)/))) {
+    d.diametro = parseFloat(m[1].replace(",",".")); d.longitud = parseFloat(m[2].replace(",","."));
+  } else if ((m = t.match(/Ø\s*(\d+(?:[.,]\d+)?)/))) d.diametro = parseFloat(m[1].replace(",","."));
+  if ((m = t.match(/\bZ\s*=?\s*(\d{1,3})\b/))) d.z = +m[1];
+  if ((m = t.match(/\b([HJKNP][5-9])\b/))) d.tolerancia = m[1];
+  return d;
+}
+
+/* ---------- STEP ---------- */
+
+function analizarSTEP(texto){
+  const r = {tipo:"step", protocolo:null, cad:null, unidad:"mm", solidos:0,
+             ensamblaje:false, pmi:[], superficies:{}, envolvente:null, avisos:[]};
+  if (!/ISO-10303/.test(texto.slice(0,400))) {
+    r.avisos.push("No parece un fichero STEP válido."); return r;
+  }
+  const cab = texto.split("DATA;")[0] || texto.slice(0,4000);
+  const prot = [["MANAGED_MODEL_BASED_3D_ENGINEERING","AP242",
+                 "El bueno: admite tolerancias legibles por máquina"],
+                ["AUTOMOTIVE_DESIGN","AP214","Geometría y color, sin tolerancias"],
+                ["CONFIG_CONTROL_DESIGN","AP203","Solo geometría"]];
+  for (const [pat,nom,nota] of prot)
+    if (cab.includes(pat)) { r.protocolo = nom; r.nota = nota; break; }
+
+  const cadm = cab.match(/'([^']*(?:SOLIDWORKS|CATIA|INVENTOR|NX|CREO|FUSION|FREECAD|SOLID EDGE)[^']*)'/i);
+  if (cadm) r.cad = cadm[1];
+  if (/INCH/.test(texto.slice(0,20000))) { r.unidad = "pulgadas"; r.avisos.push("El modelo viene en pulgadas."); }
+
+  for (const [ent,nom] of [["CYLINDRICAL_SURFACE","cilindros"],["PLANE","planos"],
+      ["CONICAL_SURFACE","conos"],["TOROIDAL_SURFACE","toros"],
+      ["B_SPLINE_SURFACE","superficies libres"]]) {
+    const n = (texto.match(new RegExp("=\\s*"+ent+"\\b","g"))||[]).length;
+    if (n) r.superficies[nom] = n;
+  }
+  r.solidos = (texto.match(/=\s*MANIFOLD_SOLID_BREP\b/g)||[]).length;
+  const productos = (texto.match(/=\s*PRODUCT\s*\(/g)||[]).length;
+  r.ensamblaje = productos > 1 || r.solidos > 1;
+  if (r.ensamblaje) r.avisos.push(`El fichero contiene ${Math.max(productos,r.solidos)} piezas. Hace falta un fichero por pieza.`);
+  if (/TRIANGULATED_FACE_SET|TESSELLATED_/.test(texto))
+    r.avisos.push("Es una malla, no un sólido exacto. No sirve para medir.");
+
+  for (const e of ["DIMENSIONAL_SIZE","GEOMETRIC_TOLERANCE","PLUS_MINUS_TOLERANCE",
+                   "DATUM","SURFACE_TEXTURE","CYLINDRICITY_TOLERANCE"])
+    if (new RegExp("=\\s*"+e+"\\b").test(texto)) r.pmi.push(e);
+  if (!r.pmi.length) r.avisos.push("Sin tolerancias dentro del modelo: habrá que sacarlas del plano.");
+
+  const pts = [...texto.matchAll(/CARTESIAN_POINT\s*\(\s*'[^']*'\s*,\s*\(\s*(-?[\d.E+-]+)\s*,\s*(-?[\d.E+-]+)\s*,\s*(-?[\d.E+-]+)/g)];
+  if (pts.length) {
+    const f = i => pts.map(p => parseFloat(p[i])).filter(v => !isNaN(v));
+    const [xs,ys,zs] = [f(1),f(2),f(3)];
+    const k = r.unidad === "pulgadas" ? 25.4 : 1;
+    r.envolvente = [ (Math.max(...xs)-Math.min(...xs))*k,
+                     (Math.max(...ys)-Math.min(...ys))*k,
+                     (Math.max(...zs)-Math.min(...zs))*k ].map(v => +v.toFixed(1));
+    r.puntos = pts.length;
+  }
+  return r;
+}
+
+/* ---------- Entrada ---------- */
+
+var ficheros = [];          // {nombre, tipo, resumen}
+
+async function procesarFichero(file){
+  const ext = (file.name.split(".").pop()||"").toLowerCase();
+  const ent = {nombre:file.name, kb:Math.round(file.size/1024), tipo:ext, estado:"leyendo"};
+  ficheros.push(ent); pintar();
+
+  try {
+    if (ext === "pdf") {
+      const r = await extraerTextoPDF(await file.arrayBuffer());
+      const rev = revisarTextoPlano(r.texto);
+      ent.tipo = "plano"; ent.estado = "ok";
+      ent.pdf = {...r, ...rev, datos: datosDePlano(r.texto)};
+      if (!rev.legible) {
+        ent.aviso = "Sin capa de texto: es un plano escaneado. Haría falta visión, "
+                  + "y la fiabilidad baja mucho.";
+      } else {
+        // Marca en la lista lo que no aparece en el plano
+        peticion.hallazgos = rev.faltan.slice();
+        const d = ent.pdf.datos;
+        const partes = [];
+        if (d.material) partes.push(d.material);
+        if (d.diametro) partes.push("Ø"+d.diametro+(d.longitud?"x"+d.longitud:""));
+        if (d.z) partes.push("Z"+d.z);
+        if (d.tolerancia) partes.push(d.tolerancia);
+        if (partes.length) ent.sugerido = partes.join(" ");
+      }
+    } else if (["step","stp","p21"].includes(ext)) {
+      ent.tipo = "3d"; ent.estado = "ok";
+      ent.step = analizarSTEP(await file.text());
+    } else {
+      ent.estado = "no_soportado";
+      ent.aviso = "Formato no soportado. Sube un PDF o un STEP.";
+    }
+  } catch (e) {
+    ent.estado = "error";
+    ent.aviso = "No se ha podido leer: " + e.message;
+  }
+  peticion.resultado = null;
+  pintar();
+}
+
+function quitarFichero(i){ ficheros.splice(i,1); pintar(); }
+
+function engancharZona(){
+  const z = document.getElementById("zonaDrop");
+  if (!z || z.dataset.listo) return;
+  z.dataset.listo = "1";
+  const inp = document.getElementById("inpFichero");
+  z.addEventListener("dragover", e => { e.preventDefault(); z.classList.add("sobre"); });
+  z.addEventListener("dragleave", () => z.classList.remove("sobre"));
+  z.addEventListener("drop", e => {
+    e.preventDefault(); z.classList.remove("sobre");
+    for (const f of e.dataTransfer.files) procesarFichero(f);
+  });
+  if (inp) inp.addEventListener("change", e => {
+    for (const f of e.target.files) procesarFichero(f);
+    e.target.value = "";
+  });
+}
+
+/* ============================================================
+   VISTA: NUEVA PETICIÓN  —  aquí es donde se trabaja
+   ============================================================ */
+
+const EJEMPLOS = {
+  repetida: `Buenos días,
+
+Necesitamos presupuesto para 250 uds de PIÑON Z18 08B-1 en AISI 304,
+referencia BI.UNIV.03.007.01.
+Cubo Ø45, ancho cubo 25, taladro Ø30, chavetero 8x3,3 con 1 prisionero.
+Ancho total 20.
+
+Plazo deseado: 3 semanas.
+Un saludo`,
+  doble: `Hola,
+
+Oferta para 40 uds de piñón doble Z25 16B-2 en F-125.
+Taper Lock 2517. Dentado templado.
+Norma DIN 8187.
+
+Gracias`,
+  engranaje: `Buenas,
+
+Presupuesto de 12 piezas: ENGRANAJE HELICOIDAL Z90 MODULO 3,
+hélice 15° dcha, ángulo de presión 20°, calidad DIN 3962-8.
+Material F-125, taladro Ø60, chavetero 18x6.
+
+Un saludo`,
+  parecida: `Hola,
+
+Nos hace falta oferta de 50 piezas: EJE Ø60x800 en F-125, según plano adjunto.
+Tolerancia H7 en el asiento de rodamiento.
+
+Gracias`,
+  nueva: `Buenas,
+
+Adjunto plano para presupuestar. 25 unidades.
+La pieza va cromada.
+
+Saludos`,
+};
+
+var peticion = {
+  texto: EJEMPLOS.repetida,
+  cantidad: null,
+  margen: 35,
+  plano: false,
+  hallazgos: [],
+  resultado: null,
+};
+
+function cargarEjemplo(k){ peticion.texto = EJEMPLOS[k]; peticion.resultado = null; pintar(); }
+
+function alternarHallazgo(id){
+  const i = peticion.hallazgos.indexOf(id);
+  if (i >= 0) peticion.hallazgos.splice(i,1); else peticion.hallazgos.push(id);
+  peticion.resultado = null;
+  pintar();
+}
+
+function presupuestar(){
+  const t = document.getElementById("txtPeticion");
+  if (t) peticion.texto = t.value;
+  const c = document.getElementById("cantidadMan");
+  const mg = document.getElementById("margenMan");
+  if (mg) peticion.margen = +mg.value || 35;
+
+  const pieza = normalizarPieza(peticion.texto);
+  if (c && +c.value > 0) pieza.cantidad = +c.value;
+  const cantidad = pieza.cantidad || 1;
+
+  const hallazgos = CHECKS_PLANO.filter(x => peticion.hallazgos.includes(x.id));
+  const sim = buscarSimilares(pieza);
+  const ruta = generarRuta(pieza);
+  const via = decidirVia(pieza, sim, hallazgos);
+  const coste = via.via === "C" ? null : calcularCoste(pieza, ruta, cantidad, peticion.margen);
+
+  // Plazo: días de cola de la máquina más cargada de la ruta + fabricación
+  const usadas = ruta.ops.map(o => o.tipo);
+  const colaMax = Math.max(0, ...MAQUINAS
+    .filter(m => usadas.some(u => m.s.toLowerCase().includes(u.split("_")[0])))
+    .map(m => diasDe(m.carga)));
+  const externo = ruta.ops.some(o => o.tipo==="externo") ? 9 : 0;
+  const optimo = Math.max(1, Math.ceil(colaMax*0.35 + (coste?coste.minutos:0)/480 + externo));
+  const comprometible = Math.max(optimo+2, Math.ceil(optimo*1.6));
+
+  peticion.resultado = {pieza, sim, ruta, via, coste, cantidad, hallazgos,
+                        optimo, comprometible};
+  pintar();
+}
+
+const VIAS_T = {
+  A:{t:"Pieza que ya hemos hecho", c:"verde",
+     d:"Hay comparables casi idénticos en el histórico. Puedes fiarte del número."},
+  B:{t:"Pieza parecida", c:"ambar",
+     d:"Hay comparables, pero no exactos. Merece un vistazo al desglose."},
+  C:{t:"Necesita una persona", c:"rojo",
+     d:"No propongo precio: faltan datos o no hay apoyo suficiente en el histórico."},
+};
+
+
+function fichaFichero(f, i){
+  const ico = f.estado === "ok" ? (f.tipo === "3d" ? "d3" : "pdf") : "err";
+  const et  = f.estado === "ok" ? (f.tipo === "3d" ? "3D" : "PDF") : "!";
+  let cuerpo = "";
+
+  if (f.estado === "leyendo") cuerpo = `<div class="sub">Leyendo…</div>`;
+  else if (f.pdf) {
+    const p = f.pdf;
+    cuerpo = `<div class="sub" style="font-size:12px">${p.paginas} pág ·
+        ${p.flujos} flujos (${p.comprimidos} comprimidos) ·
+        ${p.legible ? p.texto.length + " caracteres de texto" : "sin capa de texto"}</div>
+      ${p.legible ? `
+        <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+          ${CHECKS_PLANO.map(c => `<span class="chip ${p.hay[c.id] ? "verde" : 
+             c.g==="bloqueante" ? "rojo" : c.g==="importante" ? "ambar" : "gris"}"
+             style="font-size:11px" title="${esc(c.t)}">${p.hay[c.id]?"✓":"✕"} ${c.id}</span>`).join("")}
+        </div>
+        ${f.sugerido ? `<div class="sub" style="margin-top:7px;font-size:12px">
+          Del plano: <strong>${esc(f.sugerido)}</strong>
+          <button class="btn btn-sec" style="height:24px;font-size:11px;padding:0 9px;
+            margin-left:6px" onclick="usarDelPlano(${i})">Añadir al texto</button></div>` : ""}`
+      : ""}`;
+  } else if (f.step) {
+    const s = f.step;
+    cuerpo = `<div class="sub" style="font-size:12px">
+        ${s.protocolo || "protocolo desconocido"}${s.cad ? " · " + esc(s.cad) : ""}
+        ${s.envolvente ? " · envolvente " + s.envolvente.join(" × ") + " mm" : ""}</div>
+      <div style="margin-top:7px;display:flex;gap:6px;flex-wrap:wrap">
+        ${Object.entries(s.superficies).map(([k,v]) =>
+          `<span class="chip gris" style="font-size:11px">${v} ${k}</span>`).join("")}
+        <span class="chip ${s.pmi.length?"verde":"ambar"}" style="font-size:11px">
+          ${s.pmi.length ? s.pmi.length + " tolerancias" : "sin tolerancias"}</span>
+      </div>
+      ${s.nota ? `<div class="sub" style="font-size:11.5px;margin-top:6px">${esc(s.nota)}</div>` : ""}`;
+  }
+
+  const avisos = [f.aviso, ...((f.step && f.step.avisos) || [])].filter(Boolean);
+
+  return `<div class="fich">
+    <div class="ico ${ico}">${et}</div>
+    <div style="flex:1;min-width:0">
+      <div style="font-weight:500;font-size:13.5px;overflow:hidden;
+        text-overflow:ellipsis;white-space:nowrap">${esc(f.nombre)}
+        <span class="sub" style="font-weight:400">· ${f.kb} kB</span></div>
+      ${cuerpo}
+      ${avisos.map(a => `<div class="aviso importante" style="margin-top:8px;padding:8px 10px">
+        <span class="ic">!</span><span style="font-size:12.5px">${esc(a)}</span></div>`).join("")}
+    </div>
+    <button class="sub" style="flex-shrink:0;font-size:16px;line-height:1"
+      onclick="quitarFichero(${i})" title="Quitar">×</button>
+  </div>`;
+}
+
+function usarDelPlano(i){
+  const t = document.getElementById("txtPeticion");
+  if (t) { peticion.texto = t.value; }
+  peticion.texto = (peticion.texto + "\n" + ficheros[i].sugerido).trim();
+  peticion.resultado = null;
+  pintar();
+  brindis("Datos del plano añadidos al texto.");
+}
+
+function vistaPeticion(){
+  const r = peticion.resultado;
+  return `
+  <div class="cabecera">
+    <div><h1>Nueva petición</h1>
+      <p>Pega el correo del cliente y marca lo que falte en el plano</p></div>
+  </div>
+
+  <div style="padding:0 24px 16px">
+    <div class="g3">
+      <div>
+        <div class="tarjeta" style="margin-bottom:14px">
+          <h3>Correo o descripción de la pieza</h3>
+          <div class="sub2">En producción esto lo lee el sistema del buzón de ofertas</div>
+          <div class="sug" style="margin-bottom:10px">
+            <button onclick="cargarEjemplo('repetida')">Piñón simple</button>
+            <button onclick="cargarEjemplo('doble')">Piñón doble + Taper</button>
+            <button onclick="cargarEjemplo('engranaje')">Engranaje helicoidal</button>
+            <button onclick="cargarEjemplo('parecida')">Eje con H7</button>
+            <button onclick="cargarEjemplo('nueva')">Pieza nueva</button>
+          </div>
+          <textarea id="txtPeticion" class="campo" style="height:150px;padding:12px;
+            resize:vertical;font-family:inherit;line-height:1.55"
+            >${esc(peticion.texto)}</textarea>
+
+          <div style="display:flex;gap:12px;margin-top:12px;flex-wrap:wrap;align-items:flex-end">
+            <div><label class="etiqueta">Cantidad (si no está en el texto)</label>
+              <input id="cantidadMan" class="campo cifra" type="number" min="1"
+                style="width:150px;margin-top:5px" placeholder="auto"></div>
+            <div><label class="etiqueta">Margen %</label>
+              <input id="margenMan" class="campo cifra" type="number" min="0" max="200"
+                value="${peticion.margen}" style="width:110px;margin-top:5px"></div>
+            <button class="btn btn-prim" onclick="presupuestar()">Presupuestar</button>
+          </div>
+        </div>
+
+        <div class="tarjeta" style="margin-bottom:14px">
+          <h3>Plano o modelo 3D</h3>
+          <div class="sub2">Arrastra un PDF o un STEP. Se lee aquí mismo, en tu
+            navegador: el fichero no sale de tu ordenador</div>
+          <div class="drop" id="zonaDrop" onclick="document.getElementById('inpFichero').click()">
+            <div style="font-size:22px;margin-bottom:4px">↓</div>
+            Arrastra aquí el plano, o pulsa para elegirlo
+            <div style="font-size:12px;margin-top:5px">PDF o STEP · .pdf .step .stp</div>
+          </div>
+          <input type="file" id="inpFichero" multiple accept=".pdf,.step,.stp,.p21"
+            style="display:none">
+          ${ficheros.map((f,i) => fichaFichero(f,i)).join("")}
+        </div>
+
+        <div class="tarjeta">
+          <h3>Revisión del plano</h3>
+          <div class="sub2">Si subes un PDF legible, esto se marca solo. Si no,
+            márcalo tú para ver cómo cambia la decisión</div>
+          <div style="display:flex;flex-direction:column;gap:7px">
+            ${CHECKS_PLANO.map(c => `
+              <label style="display:flex;gap:9px;align-items:flex-start;cursor:pointer;
+                     font-size:13.5px">
+                <input type="checkbox" ${peticion.hallazgos.includes(c.id)?"checked":""}
+                  onchange="alternarHallazgo('${c.id}')" style="margin-top:3px">
+                <span><span class="chip ${c.g==="bloqueante"?"rojo":c.g==="importante"?"ambar":"gris"}"
+                  style="font-size:11px">${c.g}</span> ${esc(c.t)}</span>
+              </label>`).join("")}
+          </div>
+        </div>
+      </div>
+
+      <div>${r ? resultadoPeticion(r) : `
+        <div class="tarjeta">
+          <h3>Aún no hay resultado</h3>
+          <div class="sub2">Pulsa Presupuestar y verás el precio, la ruta de
+            fabricación, las piezas comparables y el plazo.</div>
+        </div>`}
+      </div>
+    </div>
+  </div>`;
+}
+
+function resultadoPeticion(r){
+  const v = VIAS_T[r.via.via], p = r.pieza, c = r.coste;
+  const bloq = r.hallazgos.filter(h=>h.g==="bloqueante");
+
+  return `
+  <div class="tarjeta" style="margin-bottom:14px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+      <div>
+        <span class="chip ${v.c}">${v.t}</span>
+        <div class="sub2" style="margin-top:8px">${v.d}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div class="etiqueta">Confianza</div>
+        <div class="cifra" style="font-size:20px;font-weight:600">${Math.round(r.via.conf*100)} %</div>
+      </div>
+    </div>
+
+    ${c ? `
+      <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--borde)">
+        <div class="etiqueta">Precio propuesto · ${r.cantidad} uds</div>
+        <div class="cifra" style="font-size:30px;font-weight:600;margin-top:2px">${eur(c.precio)}</div>
+        <div class="sub cifra">${eur(c.unitario)} por unidad ·
+          banda ${eur(c.precio*(1-(1-r.via.conf)*0.3))} — ${eur(c.precio*(1+(1-r.via.conf)*0.3))}</div>
+      </div>` : `
+      <div class="aviso bloqueante" style="margin-top:14px">
+        <span class="ic">!</span>
+        <span><strong>No propongo precio.</strong>
+        ${esc([...p.dudas, ...bloq.map(b=>b.t)].slice(0,3).join(". ") || "Sin apoyo suficiente.")}.
+        He preparado la consulta al cliente.</span>
+      </div>`}
+  </div>
+
+  <div class="tarjeta" style="margin-bottom:14px">
+    <h3>Lo que he entendido</h3>
+    <div class="sub2">Extraído del texto, sin inventar nada</div>
+    ${[["Familia",p.familia],["Material",p.material],["Cantidad",r.cantidad],
+       ["Dientes Z",p.z],
+       ["Paso",p.paso ? p.paso + (p.pasoMm && !/mm/.test(p.paso) ? ` (${p.pasoMm} mm)` : "") : null],
+       ["Ramales",p.ramalesTxt ? `${p.ramales} — ${p.ramalesTxt}` : null],
+       ["Módulo",p.modulo],
+       ["Ángulo de presión",p.anguloPresion?p.anguloPresion+"°":null],
+       ["Hélice",p.helicoidal ? `${p.anguloHelice||"?"}° ${p.sentidoHelice||""}`.trim() : null],
+       ["Ø primitivo",p.primitivo?p.primitivo+" mm":null],
+       ["Ø exterior",p.exterior?p.exterior+" mm":null],
+       ["Ø cubo",p.cubo?p.cubo+" mm":null],
+       ["Ancho cubo",p.anchoCubo?p.anchoCubo+" mm":null],
+       ["Ø taladro",p.taladro?p.taladro+" mm":null],
+       ["Chavetero",p.chavetero],
+       ["Prisioneros",p.prisioneros],
+       ["Casquillo cónico",p.taper?"Taper Lock "+p.taper:null],
+       ["Perfil de correa",p.perfil],["Canales",p.canales],
+       ["Ø",!p.z && p.diametro?p.diametro+" mm":null],
+       ["Longitud",p.longitud?p.longitud+" mm":null],
+       ["Ancho",p.ancho?p.ancho+" mm":null],
+       ["Tolerancia",p.tolerancia],
+       ["Dentado templado",p.dentadoTemplado?"sí":null],
+       ["Normas",p.normas.join(", ")||null],
+       ["Tratamientos",p.tratamientos.join(", ")||null]]
+      .filter(([,v])=>v).map(([k,v]) =>
+      `<div class="fila"><span class="k">${k}</span><span>${esc(String(v))}</span></div>`).join("")}
+    ${p.dudas.length ? `<div class="aviso importante" style="margin-top:10px">
+      <span class="ic">!</span><span>${p.dudas.map(esc).join(". ")}.</span></div>` : ""}
+    ${p.z && p.pasoMm ? `<p class="nota" style="margin-top:10px">
+      Ø primitivo deducido con Dp = p / sen(180°/Z) y exterior con
+      De = p · (0,6 + cotg(180°/Z)). Son las fórmulas de la norma, no estimaciones.</p>`
+      : p.z && p.modulo ? `<p class="nota" style="margin-top:10px">
+      Ø primitivo = módulo × Z y exterior = módulo × (Z+2).</p>` : ""}
+  </div>
+
+  ${c ? `
+  <div class="tarjeta" style="margin-bottom:14px">
+    <h3>Ruta de fabricación</h3>
+    <div class="sub2">${r.ruta.ops.length} operaciones · ${c.minutos} min en total</div>
+    <table style="font-size:13px">
+      ${r.ruta.ops.map((o,i) => `<tr>
+        <td style="padding:6px 8px;width:22px" class="sub">${i+1}</td>
+        <td style="padding:6px 8px">${esc(o.desc)}
+          ${o.nota?`<div class="sub" style="font-size:11.5px">${esc(o.nota)}</div>`:""}</td>
+        <td class="der cifra" style="padding:6px 8px">${o.min} min/ud</td>
+        <td class="der cifra sub" style="padding:6px 8px">prep ${o.prep}</td>
+      </tr>`).join("")}
+    </table>
+  </div>
+
+  <div class="tarjeta" style="margin-bottom:14px">
+    <h3>Desglose</h3>
+    <div class="fila"><span class="k">Material (${c.kg} kg/ud)</span><span class="cifra">${eur(c.material)}</span></div>
+    <div class="fila"><span class="k">Máquina</span><span class="cifra">${eur(c.maquina)}</span></div>
+    <div class="fila"><span class="k">Preparación</span><span class="cifra">${eur(c.prep)}</span></div>
+    <div class="fila"><span class="k">Subcontratas</span><span class="cifra">${eur(c.externo)}</span></div>
+    <div class="fila"><span class="k">Indirectos</span><span class="cifra">${eur(c.indirectos)}</span></div>
+    <div style="border-top:1px solid var(--borde);margin-top:9px;padding-top:9px">
+      <div class="fila"><span class="k">Coste</span>
+        <span class="cifra" style="font-weight:600">${eur(c.coste)}</span></div>
+      <div class="fila"><span class="k">Margen aplicado</span>
+        <span class="cifra" style="font-weight:600">${peticion.margen} %</span></div>
+    </div>
+  </div>
+
+  <div class="tarjeta" style="margin-bottom:14px">
+    <h3>Plazo de entrega</h3>
+    <div class="fila"><span class="k">Óptimo</span>
+      <span class="cifra sub">${r.optimo} días</span></div>
+    <div class="fila"><span class="k">Comprometible</span>
+      <span class="cifra" style="font-weight:600">${r.comprometible} días</span></div>
+    <p class="nota" style="margin-top:8px">Calculado con la cola real de las máquinas
+      de la ruta. Al cliente se le da la comprometible.</p>
+  </div>` : ""}
+
+  <div class="tarjeta" style="margin-bottom:14px">
+    <h3>Piezas en las que me apoyo</h3>
+    <div class="sub2">${r.sim.length} comparables en el histórico</div>
+    ${r.sim.length ? r.sim.map(s => `
+      <div style="padding:9px 0;border-bottom:1px solid #f0f1f3">
+        <div style="display:flex;justify-content:space-between;gap:10px">
+          <span style="font-weight:500;font-size:13.5px">${esc(s.d)}</span>
+          <span class="cifra" style="flex-shrink:0">${eur(s.precio)}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;gap:10px;margin-top:3px">
+          <span class="sub" style="font-size:12px">${esc(s.motivos.join(", "))}</span>
+          <span class="sub cifra" style="flex-shrink:0;font-size:12px">${Math.round(s.s*100)} %
+            · ${s.res}</span>
+        </div>
+      </div>`).join("")
+      : `<div class="vacio" style="padding:20px"><strong>Sin comparables</strong>
+         No hay piezas parecidas en el histórico.</div>`}
+  </div>
+
+  ${r.hallazgos.length ? `
+  <div class="tarjeta" style="margin-bottom:14px">
+    <h3>Hallazgos del plano</h3>
+    <div style="display:flex;flex-direction:column;gap:7px;margin-top:8px">
+      ${r.hallazgos.map(x => `<div class="aviso ${x.g==="bloqueante"?"bloqueante":
+        x.g==="importante"?"importante":"menor"}">
+        <span class="ic">${x.g==="menor"?"i":"!"}</span><span>${esc(x.t)}</span></div>`).join("")}
+    </div>
+  </div>` : ""}
+
+  <div style="display:flex;gap:8px">
+    <button class="btn btn-prim" style="flex:1" ${!c?"disabled":""}
+      onclick="brindis('Oferta guardada. Enviarla la decides tú.')">Aprobar</button>
+    <button class="btn btn-sec" onclick="brindis('Consulta técnica redactada.')">
+      Consultar al cliente</button>
+  </div>
+  <p class="nota" style="text-align:center;margin-top:10px">
+    Aprobar no envía nada. El correo al cliente lo mandas tú.</p>`;
+}
+
+/* ============================================================
+   MOTOR DE PRESUPUESTO (versión reducida del backend)
+   Reglas deterministas. La IA solo leería el correo y el plano;
+   el precio sale de aquí.
+   ============================================================ */
+
+const MATERIALES = [
+  ["AISI 304",["AISI304","AISI 304","INOX304","INOX 304"],6.80,"inox",0.60],
+  ["AISI 316",["AISI316","AISI 316","INOX316"],             8.20,"inox",0.60],
+  ["F-114",   ["F114","F-114","C45"],                       2.40,"acero_carbono",1.00],
+  ["F-125",   ["F125","F-125","42CRMO4"],                   3.10,"acero_aleado",0.80],
+  ["ST-52",   ["ST52","ST-52","S355"],                      2.10,"acero_carbono",1.00],
+  ["1.2379",  ["1.2379","X153"],                            9.50,"acero_herr",0.40],
+  ["BRONCE",  ["BRONCE","CUSN"],                           11.00,"no_ferrico",2.50],
+  ["ALUMINIO",["ALUMINIO","AL6082","6082"],                 4.60,"no_ferrico",2.50],
+];
+
+const FAMILIAS_T = [
+  ["pinon_doble",["PIÑON DOBLE","PINON DOBLE"]],
+  ["pinon",      ["PIÑON","PINON","SPROCKET"]],
+  ["corona",     ["CORONA","ENGRANAJE","RUEDA DENTADA"]],
+  ["eje",        ["EJE","ARBOL","VASTAGO"]],
+  ["casquillo",  ["CASQUILLO","BUJE","BOCINA"]],
+  ["brida",      ["BRIDA","PLATO"]],
+  ["polea",      ["POLEA"]],
+  ["soporte",    ["SOPORTE","APOYO"]],
+];
+
+const PASOS_MM = {
+  "03B":5,"04B":6,"05B":8,"06B":9.525,"081":12.7,"08B":12.7,"10B":15.875,
+  "12B":19.05,"16B":25.4,"20B":31.75,"24B":38.1,"28B":44.45,"32B":50.8,
+  "40B":63.5,"48B":76.2,
+  "25A":6.35,"35A":9.525,"40A":12.7,"50A":15.875,"60A":19.05,"80A":25.4,
+  "100A":31.75,"120A":38.1,"140A":44.45,"160A":50.8,
+};
+const PASOS_ANSI = {"25":6.35,"35":9.525,"40":12.7,"50":15.875,"60":19.05,
+  "80":25.4,"100":31.75,"120":38.1,"140":44.45,"160":50.8};
+const RAMALES_TXT = {1:"simple",2:"doble",3:"triple",4:"cuádruple"};
+const TAPER_LOCK = ["1008","1108","1210","1215","1310","1610","1615","2012",
+  "2517","3020","3030","3525","3535","4030","4040","4535","4545","5040","5050"];
+const NORMAS_T = ["DIN 8187","DIN 8188","DIN 6885","DIN 3961","DIN 3962",
+  "ISO 1328","DIN 5480","DIN 5482","ISO 606","DIN 867"];
+
+const TARIFAS = {sierra:0.30, torno_cnc:0.48, torno_paralelo:0.38, fresadora:0.58,
+                 centro:0.62, talladora:0.55, mortajadora:0.42, rectificadora:0.55,
+                 roscadora:0.35, externo:0};
+const PREP = {sierra:10, torno_cnc:45, torno_paralelo:30, fresadora:50, centro:60,
+              talladora:90, mortajadora:35, rectificadora:40, roscadora:25, externo:0};
+
+function limpiarTxt(t){
+  return (t||"").toUpperCase()
+    .replace(/Ñ/g,"\u0001").normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .replace(/\u0001/g,"Ñ")
+    .replace(/[ØøΦ⌀]/g,"Ø").replace(/\bDIAM(?:ETRO)?\.?\s*/g,"Ø")
+    .replace(/\s+/g," ");
+}
+
+function sacarPaso(t){
+  let m = t.match(/\b(0[3-9]|1[0-9]|2[0-8]|3[02]|40|48|100|1[24]0|160)([AB])\s*-?\s*([1-4])?\b/);
+  if (m) return {desig:m[1]+m[2], mm:PASOS_MM[m[1]+m[2]]||null, ram:m[3]?+m[3]:null};
+  m = t.match(/\b(?:ASA|ANSI)\s*(\d{2,3})\s*-?\s*([1-4])?\b/);
+  if (m && PASOS_ANSI[m[1]]) return {desig:"ASA "+m[1], mm:PASOS_ANSI[m[1]], ram:m[2]?+m[2]:null};
+  m = t.match(/ISO\s*(\d+)\s*\/\s*(\d+)\s*"/);
+  if (m) return {desig:`ISO ${m[1]}/${m[2]}"`, mm:+(+m[1]/+m[2]*25.4).toFixed(3), ram:null};
+  m = t.match(/\bPASO\s*[:=]?\s*(\d{1,3}(?:[.,]\d{1,3})?)/);
+  if (m) { const v=parseFloat(m[1].replace(",",".")); if(v>=3&&v<=120) return {desig:v+" mm",mm:v,ram:null}; }
+  return {desig:null, mm:null, ram:null};
+}
+
+function normalizarPieza(texto){
+  const t = limpiarTxt(texto), comp = t.replace(/[\s\-_]/g,"");
+  const r = {texto, familia:null, material:null, precioKg:null, grupo:null, maq:1,
+             z:null, paso:null, pasoMm:null, ramales:null, ramalesTxt:null,
+             modulo:null, anguloPresion:null, helicoidal:false, anguloHelice:null,
+             sentidoHelice:null, primitivo:null, exterior:null, cubo:null,
+             anchoCubo:null, taladro:null, chavetero:null, prisioneros:null,
+             taper:null, perfil:null, canales:null, dentadoTemplado:false,
+             normas:[], diametro:null, longitud:null, ancho:null, cantidad:null,
+             tolerancia:null, tratamientos:[], dudas:[]};
+
+  for (const [f,pistas] of FAMILIAS_T)
+    if (pistas.some(x => t.includes(x))) { r.familia = f; break; }
+  for (const [m,alias,precio,grupo,maq] of MATERIALES)
+    if (alias.some(a => comp.includes(a.replace(/[\s\-]/g,"")))) {
+      r.material=m; r.precioKg=precio; r.grupo=grupo; r.maq=maq; break; }
+
+  let m;
+  if ((m = t.match(/\bZ\s*=?\s*(\d{1,3})\b/))) { const z=+m[1]; if(z>=5&&z<=250) r.z=z; }
+  const pz = sacarPaso(t);
+  r.paso = pz.desig; r.pasoMm = pz.mm; r.ramales = pz.ram;
+  if (r.ramales) r.ramalesTxt = RAMALES_TXT[r.ramales];
+
+  if ((m = t.match(/\bM[OÓ]D(?:ULO)?\.?\s*[:=]?\s*(\d{1,2}(?:[.,]\d{1,2})?)\b/)) ||
+      (m = t.match(/\bM\s*=\s*(\d{1,2}(?:[.,]\d{1,2})?)\b/))) {
+    const v = parseFloat(m[1].replace(",",".")); if (v>=0.3 && v<=40) r.modulo = v;
+  }
+
+  // Cotas con etiqueta: se sacan antes que las generales
+  const marca = (re) => { const x = t.match(re); return x ? parseFloat(x[1].replace(",",".")) : null; };
+  r.primitivo = marca(/(?:Ø\s*)?PRIM(?:ITIVO)?\.?\s*[:=]?\s*Ø?\s*(\d{1,4}(?:[.,]\d{1,2})?)/);
+  r.exterior  = marca(/(?:Ø\s*)?EXT(?:ERIOR)?\.?\s*[:=]?\s*Ø?\s*(\d{1,4}(?:[.,]\d{1,2})?)/);
+  r.cubo      = marca(/(?:Ø\s*)?CUBO\s*[:=]?\s*Ø?\s*(\d{1,4}(?:[.,]\d{1,2})?)/);
+  r.anchoCubo = marca(/ANCHO\s*(?:DE\s*)?CUBO\s*[:=]?\s*(\d{1,4}(?:[.,]\d{1,2})?)/);
+  r.taladro   = marca(/(?:TALADRO|Ø\s*INT(?:ERIOR)?|AGUJERO)\s*[:=]?\s*Ø?\s*(\d{1,4}(?:[.,]\d{1,2})?)/);
+
+  if ((m = t.match(/CHAV(?:ETERO|ETA)?\.?\s*[:=]?\s*(\d{1,2}\s*[XX*]\s*\d{1,2}(?:[.,]\d)?)/)))
+    r.chavetero = m[1].replace(/\s*[XX*]\s*/,"x").replace(",",".");
+  else if (/\bCHAVETERO\b|\bDIN\s*6885\b/.test(t)) r.chavetero = "sí, sin medida";
+  if ((m = t.match(/(\d)\s*PRISIONERO/))) r.prisioneros = +m[1];
+  else if (t.includes("PRISIONERO")) r.prisioneros = 1;
+
+  if (/TAPER|CASQUILLO C[OÓ]NICO|BUJ[EÉ] C[OÓ]NICO/.test(t))
+    for (const x of t.match(/\b\d{4}\b/g)||[]) if (TAPER_LOCK.includes(x)) { r.taper=x; break; }
+
+  if (/HELICOIDAL|H[EÉ]LICE/.test(t)) {
+    r.helicoidal = true;
+    if ((m = t.match(/(?:H[EÉ]LICE|BETA|β)\s*[:=]?\s*(\d{1,2}(?:[.,]\d{1,2})?)\s*°?/)))
+      r.anguloHelice = parseFloat(m[1].replace(",","."));
+    if (/\bDCHA|DERECHA|\bRH\b/.test(t)) r.sentidoHelice = "derecha";
+    else if (/\bIZDA|IZQUIERDA|\bLH\b/.test(t)) r.sentidoHelice = "izquierda";
+  }
+  if ((m = t.match(/(?:[AÁ]NGULO\s*(?:DE)?\s*PRESI[OÓ]N|ALPHA|α)\s*[:=]?\s*(\d{2}(?:[.,]\d)?)/)))
+    r.anguloPresion = parseFloat(m[1].replace(",","."));
+  else if ((r.modulo || r.z) && (m = t.match(/\b(14[.,]5|20|25)\s*°/)))
+    r.anguloPresion = parseFloat(m[1].replace(",","."));
+
+  let pasoCorrea = null;
+  if ((m = t.match(/\b(?:HTD|STD)\s*(\d{1,2})\s*M\b/))) { r.perfil="HTD "+m[1]+"M"; pasoCorrea=+m[1]; }
+  else if ((m = t.match(/\b(SPZ|SPA|SPB|SPC|XPZ|XPA|XPB|XPC|AT(?:5|10|20)|T(?:2[.,]5|5|10|20))\b/))) {
+    r.perfil = m[1].replace(",","."); 
+    const q = r.perfil.match(/A?T(\d+(?:\.\d)?)/); if (q) pasoCorrea = +q[1];
+  }
+  if ((m = t.match(/(\d{1,2})\s*(?:CANALES?|GARGANTAS?|RANURAS?)/))) r.canales = +m[1];
+  r.dentadoTemplado = /DENTADO\s+(?:TEMPLADO|CEMENTADO|NITRURADO)|TEMPLE\s+DE\s+(?:DIENTES|DENTADO)/.test(t);
+  r.normas = NORMAS_T.filter(n => t.replace(/\s/g,"").includes(n.replace(/\s/g,"")));
+
+  // Dimensiones generales, sobre el texto sin las cotas etiquetadas
+  const residuo = t.replace(
+    /(?:CHAV(?:ETERO|ETA)?\.?\s*[:=]?\s*\d{1,2}\s*[XX*]\s*\d{1,2}(?:[.,]\d)?)|(?:(?:Ø\s*)?(?:PRIM(?:ITIVO)?|EXT(?:ERIOR)?|CUBO|TALADRO|AGUJERO|Ø\s*INT(?:ERIOR)?)\.?\s*[:=]?\s*Ø?\s*\d{1,4}(?:[.,]\d{1,2})?)|(?:ANCHO\s*(?:DE\s*)?CUBO\s*[:=]?\s*\d{1,4}(?:[.,]\d{1,2})?)/g, " ");
+  if ((m = residuo.match(/Ø\s*(\d+(?:[.,]\d+)?)\s*[XX*]\s*(\d+(?:[.,]\d+)?)/))) {
+    r.diametro = parseFloat(m[1].replace(",",".")); r.longitud = parseFloat(m[2].replace(",","."));
+  } else if ((m = residuo.match(/Ø\s*(\d+(?:[.,]\d+)?)/)))
+    r.diametro = parseFloat(m[1].replace(",","."));
+  if ((m = t.match(/\bANCHO\s*(?:TOTAL)?\s*[:=]?\s*(\d{1,4}(?:[.,]\d{1,2})?)\b/)) &&
+      !/CUBO/.test(t.slice(Math.max(0,m.index-12), m.index)))
+    r.ancho = parseFloat(m[1].replace(",","."));
+
+  for (const p of [/\bCANT(?:IDAD)?\.?\s*[:=]?\s*(\d{1,5})\b/,
+                   /\b(\d{1,5})\s*(?:UDS?|UNID(?:ADES)?|PZAS?|PIEZAS?|PCS?)\b/,
+                   /\bN[ºO°]\s*(?:DE\s*)?(?:UDS?|PIEZAS?)\s*[:=]?\s*(\d{1,5})\b/]) {
+    const x = t.match(p); if (x) { r.cantidad = +x[1]; break; }
+  }
+  if ((m = t.match(/\b([HJKNP][5-9])\b|\bIT\s*([5-9])\b|±\s*0[.,](\d+)/))) r.tolerancia = m[0];
+  for (const [tr,pistas] of [["cromado",["CROMAD"]],["templado",["TEMPLAD","TEMPLE","BONIFICAD"]],
+      ["cementado",["CEMENTAD"]],["zincado",["ZINCAD","CINCAD","GALVANIZ"]],
+      ["nitrurado",["NITRURAD"]]])
+    if (pistas.some(x => t.includes(x))) r.tratamientos.push(tr);
+
+  // Geometría deducida
+  if (r.z && !r.primitivo) {
+    if (r.pasoMm)      r.primitivo = +(r.pasoMm/Math.sin(Math.PI/r.z)).toFixed(2);
+    else if (r.modulo) r.primitivo = +(r.modulo*r.z).toFixed(2);
+    else if (pasoCorrea) r.primitivo = +(pasoCorrea*r.z/Math.PI).toFixed(2);
+  }
+  if (r.z && !r.exterior) {
+    if (r.pasoMm)      r.exterior = +(r.pasoMm*(0.6+1/Math.tan(Math.PI/r.z))).toFixed(2);
+    else if (r.modulo) r.exterior = +(r.modulo*(r.z+2)).toFixed(2);
+  }
+  if (r.z && r.exterior) r.diametro = r.exterior;
+
+  if (!r.familia)  r.dudas.push("No reconozco la familia de la pieza");
+  if (!r.material) r.dudas.push("Sin material identificable");
+  if (!r.cantidad) r.dudas.push("Sin cantidad");
+  if (["pinon","pinon_doble","corona"].includes(r.familia) && !r.z)
+    r.dudas.push("Pieza dentada sin número de dientes");
+  if (r.z && !r.pasoMm && !r.modulo)
+    r.dudas.push("Dentado sin paso ni módulo: no se puede calcular la geometría");
+  if (["pinon","pinon_doble"].includes(r.familia) && r.ramales===null && r.paso)
+    r.dudas.push("No indica si es simple, doble o triple");
+  if (["pinon","pinon_doble","corona","polea"].includes(r.familia) && !r.taladro && !r.taper)
+    r.dudas.push("Sin diámetro de taladro ni casquillo cónico");
+  if (r.familia==="polea" && !r.perfil) r.dudas.push("Polea sin perfil de correa");
+  if (["eje","casquillo"].includes(r.familia) && !r.diametro)
+    r.dudas.push("Pieza de revolución sin diámetro");
+  return r;
+}
+
+/* Histórico reducido, con precios del orden de los reales */
+const HISTORICO = [
+  {ref:"PIN-Z18-P12.7", d:"Piñón Especial Z18 paso 12,7 F-114", fam:"pinon", z:18, paso:12.7, ramales:1, mat:"F-114",  precio:30.00,  veces:12, res:"ganada"},
+  {ref:"PIN-Z18-P12.7b",d:"Piñón Especial Z18 paso 12,7 AISI 304", fam:"pinon", z:18, paso:12.7, ramales:1, mat:"AISI 304", precio:46.50, veces:5, res:"ganada"},
+  {ref:"PIN-Z20-P12.7", d:"Piñón Especial Z20 paso 12,7 F-114", fam:"pinon", z:20, paso:12.7, ramales:1, mat:"F-114",  precio:34.00,  veces:8,  res:"ganada"},
+  {ref:"PIN-Z25-P19",   d:"Piñón Especial Z25 paso 19,05 F-114", fam:"pinon", z:25, paso:19.05, ramales:1, mat:"F-114", precio:87.50, veces:6, res:"ganada"},
+  {ref:"PIN-Z14-P19",   d:"Piñón Doble Z14 paso 19,05 F-125", fam:"pinon_doble", z:14, paso:19.05, ramales:2, mat:"F-125", precio:130.00, veces:3, res:"perdida"},
+  {ref:"PIN-Z45-P25.4", d:"Piñón Especial Z45 paso 25,4 F-125", fam:"pinon", z:45, paso:25.4, mat:"F-125", precio:245.00, veces:4, res:"ganada"},
+  {ref:"EJE-50-300",    d:"Eje Ø50x300 F-114", fam:"eje", diam:50, lon:300, mat:"F-114", precio:96.00, veces:9, res:"ganada"},
+  {ref:"EJE-60-800",    d:"Eje Ø60x800 F-125", fam:"eje", diam:60, lon:800, mat:"F-125", precio:265.00, veces:4, res:"ganada"},
+  {ref:"EJE-100-1885",  d:"Eje cromado Ø100x1885 F-114", fam:"eje", diam:100, lon:1885, mat:"F-114", precio:540.00, veces:7, res:"ganada"},
+  {ref:"CAS-40-60",     d:"Casquillo Ø40x60 BRONCE", fam:"casquillo", diam:40, lon:60, mat:"BRONCE", precio:41.00, veces:11, res:"ganada"},
+  {ref:"BRI-200",       d:"Brida Ø200 AISI 316", fam:"brida", diam:200, mat:"AISI 316", precio:178.00, veces:3, res:"perdida"},
+  {ref:"COR-Z90",       d:"Corona Z90 módulo 4 F-125", fam:"corona", z:90, modulo:4, mat:"F-125", precio:610.00, veces:2, res:"ganada"},
+];
+
+function parecido(a, b){
+  if (!a.familia || a.familia !== b.fam) {
+    const vecinas = [["pinon","pinon_doble"],["eje","casquillo"]];
+    if (!vecinas.some(g => g.includes(a.familia) && g.includes(b.fam))) return 0;
+  }
+  let pts = 0, peso = 0, motivos = [];
+  const suma = (p, v, txt) => { peso += p; pts += p*v; if (txt) motivos.push(txt); };
+
+  if (a.material && b.mat) {
+    const ga = (MATERIALES.find(m=>m[0]===a.material)||[])[3];
+    const gb = (MATERIALES.find(m=>m[0]===b.mat)||[])[3];
+    const v = a.material===b.mat ? 1 : (ga && ga===gb ? 0.55 : 0.15);
+    suma(0.30, v, a.material===b.mat ? "mismo material"
+       : `material distinto (${a.material} / ${b.mat})`);
+  }
+  if (a.z && b.z) {
+    const v = Math.max(0, 1 - Math.abs(a.z-b.z)/Math.max(a.z,b.z)/0.35);
+    suma(0.28, v, a.z===b.z ? "mismo número de dientes" : `Z ${a.z} frente a ${b.z}`);
+  }
+  if (a.pasoMm && b.paso) {
+    const v = Math.abs(a.pasoMm-b.paso) < 0.2 ? 1 : 0;
+    suma(0.22, v, v ? "mismo paso de cadena" : "paso de cadena distinto");
+  }
+  if (a.modulo && b.modulo) {
+    // Dos coronas con el mismo Z y distinto módulo no son la misma pieza:
+    // cambian el diámetro, la fresa madre y el tiempo de tallado.
+    const dif = Math.abs(a.modulo-b.modulo)/Math.max(a.modulo,b.modulo);
+    suma(0.22, Math.max(0, 1-dif/0.25),
+      dif < 0.02 ? "mismo módulo" : `módulo distinto (${a.modulo} / ${b.modulo})`);
+  }
+  if (a.ramales && b.ramales) {
+    const v = a.ramales===b.ramales ? 1 : 0.2;
+    suma(0.12, v, v===1 ? null : `ramales distintos (${a.ramales} / ${b.ramales})`);
+  }
+  if (a.diametro && b.diam) {
+    const dif = Math.abs(a.diametro-b.diam)/Math.max(a.diametro,b.diam);
+    suma(0.20, Math.max(0,1-dif/0.40),
+      dif<0.02 ? "mismo diámetro" : `diámetro ${Math.round(dif*100)}% distinto`);
+  }
+  if (a.longitud && b.lon) {
+    const dif = Math.abs(a.longitud-b.lon)/Math.max(a.longitud,b.lon);
+    suma(0.10, Math.max(0,1-dif/0.60), null);
+  }
+  if (!peso) return 0;
+  return {s:+(pts/peso).toFixed(3), motivos};
+}
+
+function buscarSimilares(p){
+  return HISTORICO.map(x => ({...x, ...(parecido(p,x)||{s:0,motivos:[]})}))
+    .filter(x => x.s >= 0.55).sort((a,b)=>b.s-a.s).slice(0,5);
+}
+
+function generarRuta(p){
+  const ops = [], add = (tipo,desc,min,nota) =>
+    ops.push({tipo, desc, min:+min.toFixed(2), prep:PREP[tipo], nota:nota||""});
+  const maq = p.maq || 1, d = p.diametro, L = p.longitud || (d ? d*1.2 : null);
+  if (!p.familia || (!d && !p.z)) return {ops:[], avisos:["Faltan datos para generar la ruta"]};
+
+  const bruto = d ? d*1.08+4 : null;
+  if (bruto) add("sierra", `Tronzar redondo Ø${bruto.toFixed(0)}`,
+                 Math.PI*Math.pow(bruto/20,2)/(22*Math.min(1.6,maq)) + 0.5);
+  if (d) {
+    const rev = (vc,dm) => 1000*vc/(Math.PI*dm);
+    const vc = 200*maq, av = 0.35;
+    let min = 0, dm = bruto, pasadas = Math.max(1, Math.ceil((bruto-d)/2/4));
+    for (let i=0;i<pasadas;i++){ dm = Math.max(d, dm-8); min += L/(av*rev(vc,Math.max(dm,1))); }
+    add("torno_cnc", `Torneado desbaste Ø${bruto.toFixed(0)} → Ø${d.toFixed(0)}`, min);
+    add("torno_cnc", "Torneado de acabado", L/(0.15*rev(260*maq,d)) + d/2/(0.15*rev(260*maq,d/2)));
+  }
+  if (["pinon","pinon_doble","corona"].includes(p.familia) && p.z) {
+    const modulo = p.modulo || (p.pasoMm ? p.pasoMm/Math.PI : (d ? d/(p.z+2) : 3));
+    const ancho = p.ancho || Math.max(8, (d||60)*0.2);
+    const dFresa = Math.max(70, 20*modulo);
+    const nFresa = 1000*(200*maq*0.30)/(Math.PI*dFresa);
+    let t = p.z*(ancho+2.5*modulo)/(1.8*Math.min(1.3,maq)*nFresa);
+    if (p.familia==="pinon_doble" || (p.ramales||1) > 1) t *= (p.ramales||2);
+    add("talladora", `Tallado Z${p.z}, módulo ${modulo.toFixed(2)}`, t,
+        "El tiempo crece con el número de dientes, no con el diámetro");
+    add("mortajadora", "Chavetero interior", Math.max(6, (L||40)*0.08));
+  }
+  for (const tr of p.tratamientos)
+    add("externo", `${tr[0].toUpperCase()+tr.slice(1)} (subcontrata)`, 0,
+        "Plazo externo de 8 a 10 días");
+  if (p.tolerancia && /H[67]|IT\s*[567]/.test(p.tolerancia) && d)
+    add("rectificadora", "Rectificado cilíndrico",
+        Math.PI*d*(L||d)*0.2/1800 + 3, `Tolerancia ${p.tolerancia}: no se alcanza torneando`);
+  return {ops, avisos:[]};
+}
+
+function calcularCoste(p, ruta, cantidad, margenPct){
+  const kg = p.diametro && p.longitud
+    ? Math.PI*Math.pow(p.diametro/20+0.2,2)*(p.longitud/10)/1000*7.85
+    : (p.diametro ? Math.PI*Math.pow(p.diametro/20,2)*(p.diametro/10)/1000*7.85 : 0.5);
+  const material = kg*cantidad*(p.precioKg||2.40)*1.10;
+  let maquina = 0, prep = 0, externo = 0, minutos = 0;
+  for (const o of ruta.ops) {
+    if (o.tipo === "externo") { externo += 1.2*cantidad; continue; }
+    maquina += o.min*cantidad*TARIFAS[o.tipo];
+    prep    += o.prep*TARIFAS[o.tipo];
+    minutos += o.min*cantidad + o.prep;
+  }
+  const sub = material+maquina+prep+externo;
+  const indirectos = sub*0.10, coste = sub+indirectos;
+  const precio = coste*(1+margenPct/100);
+  return {kg:+kg.toFixed(3), material:+material.toFixed(2), maquina:+maquina.toFixed(2),
+          prep:+prep.toFixed(2), externo:+externo.toFixed(2),
+          indirectos:+indirectos.toFixed(2), coste:+coste.toFixed(2),
+          precio:+precio.toFixed(2), unitario:+(precio/cantidad).toFixed(2),
+          minutos:Math.round(minutos)};
+}
+
+function decidirVia(p, sim, hallazgos){
+  const bloq = hallazgos.filter(h=>h.g==="bloqueante").length;
+  if (p.dudas.length >= 3 || bloq >= 2) return {via:"C", conf:0.20};
+  if (!sim.length) return {via:"C", conf:0.25};
+  const mejor = sim[0].s, apoyo = Math.min(1, sim.length/3);
+  if (mejor >= 0.93 && !bloq) return {via:"A", conf:+Math.min(0.95, 0.80+0.15*apoyo).toFixed(2)};
+  if (mejor >= 0.70) return {via:"B", conf:+(0.45+0.30*mejor*apoyo).toFixed(2)};
+  return {via:"C", conf:+(0.20+0.20*mejor).toFixed(2)};
+}
+
+const CHECKS_PLANO = [
+  {id:"tol",   g:"bloqueante", t:"No declara tolerancia general (ISO 2768)"},
+  {id:"ajuste",g:"bloqueante", t:"Superficie de ajuste sin tolerancia dimensional"},
+  {id:"mat",   g:"bloqueante", t:"Material sin designación normalizada"},
+  {id:"rug",   g:"importante", t:"Sin rugosidad en superficie funcional"},
+  {id:"trat",  g:"importante", t:"No indica si las cotas son antes o después del recubrimiento"},
+  {id:"rosca", g:"importante", t:"Rosca sin profundidad útil indicada"},
+  {id:"proy",  g:"menor",      t:"No indica sistema de proyección"},
+  {id:"esc",   g:"menor",      t:"Falta la escala en el cajetín"},
+];
+
+/* ============================================================
+   VISTA: MAPA DE PLANTA
+   Las dos naves en su posición real, separadas por la carretera.
+   La izquierda sale de la foto aérea: rectángulo girado 45°, proporción 1,31.
+   La derecha está cortada en la foto, así que su tamaño es estimado.
+   ============================================================ */
+
+const G = Math.SQRT1_2;                 // las naves están giradas 45°
+const UX = [ G, -G];                    // eje "ancho"  (hacia arriba-derecha)
+const UY = [ G,  G];                    // eje "largo"  (hacia abajo-derecha)
+
+const NAVES = {
+  1: {nombre:"Nave 1 — Torneado", origen:[16, 62], ancho:37, largo:48,
+      medidasEstimadas:true,
+      forma:[[0,0],[37,0],[37,48],[0,48]]},
+  2: {nombre:"Nave 2 — Fresado, dentado y corte", origen:[52, 26], ancho:52, largo:70,
+      medidasEstimadas:true,
+      forma:[[0,10],[14,0],[52,0],[52,70],[6,70]]},
+};
+
+/* De coordenadas locales de una nave (metros) a la lona común */
+function aLona(nv, x, y) {
+  const o = NAVES[nv].origen;
+  return [o[0] + x*UX[0] + y*UY[0], o[1] + x*UX[1] + y*UY[1]];
+}
+
+/*
+  estado: produciendo | preparacion | parada | averia | sin_dato
+  carga: minutos de trabajo pendiente
+  orden: la que está haciendo ahora
+  cola: las siguientes
+*/
+const MAQUINAS = [
+  // ---------- NAVE 1: TORNOS ----------
+  {c:"T-01", n:"Torno CNC CMZ TA-25",        nv:1, s:"TORNOS CNC", x:5,  y:6,  w:5, l:2.5, e:"produciendo", carga:7140},
+  {c:"T-02", n:"Torno CNC CMZ TL-25",        nv:1, s:"TORNOS CNC", x:5,  y:11, w:5, l:2.5, e:"produciendo", carga:4980},
+  {c:"T-03", n:"Torno CNC TBI-520",          nv:1, s:"TORNOS CNC", x:5,  y:16, w:5, l:2.5, e:"parada",      carga:520},
+  {c:"T-04", n:"Torno CNC TBI-450",          nv:1, s:"TORNOS CNC", x:5,  y:21, w:5, l:2.5, e:"preparacion", carga:3010},
+  {c:"T-05", n:"Torno CNC CMZ TA-20-M-400",  nv:1, s:"TORNOS CNC", x:5,  y:26, w:5, l:2.5, e:"produciendo", carga:6300},
+  {c:"T-06", n:"Torno CNC CMZ TA-30 Fanuc",  nv:1, s:"TORNOS CNC", x:5,  y:31, w:5, l:2.5, e:"produciendo", carga:9450},
+  {c:"T-07", n:"Torno CNC Chevalier FCL-3680", nv:1, s:"TORNOS CNC", x:5, y:36, w:5, l:2.5, e:"averia",     carga:2880},
+  {c:"T-08", n:"Torno piñones CNC",          nv:1, s:"TORNOS CNC", x:20, y:6,  w:5, l:2.5, e:"produciendo", carga:11900},
+  {c:"T-09", n:"Torno Guruzpe 5 metros",     nv:1, s:"TORNO PARALELO", x:20, y:12, w:9, l:3, e:"produciendo", carga:5400},
+  {c:"T-10", n:"Torno Cazeneuve HB 575",     nv:1, s:"TORNO PARALELO", x:20, y:18, w:6, l:2.5, e:"parada",   carga:240},
+  {c:"T-11", n:"Torno Amutio",               nv:1, s:"TORNO PARALELO", x:20, y:23, w:6, l:2.5, e:"produciendo", carga:3360},
+  {c:"T-12", n:"Tarno CNC YUK",              nv:1, s:"TORNOS CNC", x:20, y:28, w:5, l:2.5, e:"sin_dato",    carga:0},
+  {c:"T-13", n:"Tarno Chevalier YUK",        nv:1, s:"TORNOS CNC", x:20, y:33, w:5, l:2.5, e:"sin_dato",    carga:0},
+  {c:"T-14", n:"Torno Sadi (noria)",         nv:1, s:"TORNO PARALELO", x:20, y:38, w:6, l:2.5, e:"parada",   carga:180},
+
+  // ---------- NAVE 2: FRESADO, DENTADO, CORTE ----------
+  {c:"S-01", n:"Sierra Danobat CR 330",  nv:2, s:"SIERRA", x:3,  y:14, w:4, l:2,   e:"produciendo", carga:1260},
+  {c:"S-02", n:"Sierra Danobat CR 260",  nv:2, s:"SIERRA", x:3,  y:18, w:4, l:2,   e:"produciendo", carga:980},
+  {c:"S-03", n:"Sierra FAT 270",         nv:2, s:"SIERRA", x:3,  y:22, w:4, l:2,   e:"parada",      carga:200},
+  {c:"S-04", n:"Sierra Sabi",            nv:2, s:"SIERRA", x:3,  y:26, w:3, l:2,   e:"sin_dato",    carga:0},
+
+  {c:"F-01", n:"Fresadora BF-04",            nv:2, s:"FRESADORA CNC", x:12, y:8,  w:6, l:3.5, e:"produciendo", carga:8137},
+  {c:"F-02", n:"Fresadora Correa CF 22/25",  nv:2, s:"FRESADORA CNC", x:12, y:14, w:6, l:3.5, e:"produciendo", carga:6250},
+  {c:"F-03", n:"Fresadora Prisma",           nv:2, s:"FRESADORA CNC", x:12, y:20, w:5, l:3,   e:"preparacion", carga:2400},
+  {c:"F-04", n:"Fresadora Axia-70",          nv:2, s:"FRESADORA CNC", x:12, y:26, w:5, l:3,   e:"averia",      carga:4680},
+  {c:"F-05", n:"Fresadora Axia-70 económica",nv:2, s:"FRESADORA CNC", x:12, y:32, w:5, l:3,   e:"produciendo", carga:3900},
+  {c:"F-06", n:"Fresadora FS-2",             nv:2, s:"FRESADORA CNC", x:12, y:38, w:5, l:3,   e:"produciendo", carga:5100},
+  {c:"F-07", n:"Fresadora de piñones",       nv:2, s:"FRESADORA CNC", x:12, y:44, w:5, l:3,   e:"produciendo", carga:7020},
+  {c:"F-08", n:"Fresadora YUK",              nv:2, s:"FRESADORA CNC", x:12, y:50, w:5, l:3,   e:"parada",      carga:360},
+
+  {c:"SO-1", n:"Fresadora Soraluce",         nv:2, s:"CENTROS DE MECANIZADO", x:24, y:8,  w:14, l:4.5, e:"produciendo", carga:10980},
+  {c:"SO-2", n:"Fresadora FLP Soraluce",     nv:2, s:"CENTROS DE MECANIZADO", x:24, y:16, w:11, l:4,   e:"parada",      carga:420},
+  {c:"C-01", n:"Centro Mec. Litz 5 ejes LU-620", nv:2, s:"CENTROS DE MECANIZADO", x:24, y:24, w:6, l:4, e:"produciendo", carga:6600},
+  {c:"C-02", n:"Centro Yuk",                 nv:2, s:"CENTROS DE MECANIZADO", x:24, y:31, w:5, l:3.5, e:"preparacion",  carga:2580},
+
+  {c:"TA-1", n:"Talladora Bilariz",          nv:2, s:"TALLADO", x:40, y:10, w:5, l:3, e:"produciendo", carga:10080},
+  {c:"TA-2", n:"Talladora Eujo",             nv:2, s:"TALLADO", x:40, y:16, w:5, l:3, e:"produciendo", carga:7920},
+  {c:"TA-3", n:"Talladora TOS OH-50 PLC",    nv:2, s:"TALLADO", x:40, y:22, w:5, l:3, e:"parada",      carga:720},
+  {c:"TA-4", n:"Talladora TOS OHA50A",       nv:2, s:"TALLADO", x:40, y:28, w:5, l:3, e:"produciendo", carga:5460},
+  {c:"TA-5", n:"Talladora Fellow OH50",      nv:2, s:"TALLADO", x:40, y:34, w:5, l:3, e:"sin_dato",    carga:0},
+
+  {c:"R-01", n:"Roscadora CMA 45-D",  nv:2, s:"ROSCADO", x:24, y:40, w:4, l:2.5, e:"produciendo", carga:1920},
+  {c:"R-02", n:"Roscadora Gamor",     nv:2, s:"ROSCADO", x:24, y:45, w:4, l:2.5, e:"parada",      carga:300},
+  {c:"R-03", n:"Roscadora Gotap M12", nv:2, s:"ROSCADO", x:24, y:50, w:4, l:2.5, e:"produciendo", carga:1440},
+  {c:"RE-1", n:"Rectificadora",       nv:2, s:"RECTIFICADO", x:40, y:42, w:5, l:2.5, e:"produciendo", carga:2760},
+  {c:"MT-1", n:"Mortajadora Hoytom",  nv:2, s:"TALLADO", x:40, y:48, w:4, l:2.5, e:"produciendo", carga:3300},
+];
+
+const ZONAS = [
+  {t:"Entrada material", nv:2, x:0,  y:8,  w:8,  l:4,  tipo:"acceso"},
+  {t:"Expedición",       nv:2, x:44, y:62, w:8,  l:8,  tipo:"acceso"},
+  {t:"Oficinas",         nv:2, x:2,  y:58, w:12, l:10, tipo:"zona"},
+  {t:"Calidad",          nv:2, x:32, y:56, w:8,  l:7,  tipo:"zona"},
+  {t:"Almacén",          nv:1, x:28, y:42, w:8,  l:5,  tipo:"zona"},
+  {t:"Acceso",           nv:1, x:2,  y:42, w:6,  l:5,  tipo:"acceso"},
+];
+
+const ESTADOS = {
+  produciendo: {c:"#16A34A", t:"Produciendo"},
+  preparacion: {c:"#D9A441", t:"En preparación"},
+  parada:      {c:"#D42A2A", t:"Parada"},
+  averia:      {c:"#7B1414", t:"Avería"},
+  sin_dato:    {c:"#C4C7C9", t:"Sin conectar"},
+};
+
+/* Órdenes de ejemplo, con el formato del ERP */
+const CLIENTES_ORD = ["INDUSTRIAS YUK, S.A.", "RENOLD IBERIA S.A.U.",
+  "CHAINS & SPROCKETS, S.L.", "BEA TRANSMISION 98", "NAUTICA PEDRO FRANCO, S.L.",
+  "MACOANSAL", "TIMUR LEVANTE, S.L.", "INDUSTRIAS PEÑALVER, SL",
+  "JUAN JOSE ALBARRACIN, S.A.", "MANT. IND. EL FERRIOL, S.L."];
+const OPERARIOS = ["MAXIMINIO HERNANDEZ", "SERGIO AGUILAR", "ANTONIO MARTINEZ",
+  "JOSE LUIS GARCIA", "PEDRO SANCHEZ"];
+
+function ordenesDe(m) {
+  /* Deterministas a partir del código: la misma máquina da siempre lo mismo */
+  let semilla = [...m.c].reduce((s, ch) => s + ch.charCodeAt(0), 0);
+  const sig = () => (semilla = (semilla * 9301 + 49297) % 233280) / 233280;
+  const n = m.carga === 0 ? 0 : 2 + Math.floor(sig() * 9);
+  return Array.from({length:n}, () => ({
+    num: 164000 + Math.floor(sig() * 2500),
+    cliente: CLIENTES_ORD[Math.floor(sig() * CLIENTES_ORD.length)],
+    uds: 1 + Math.floor(sig() * 30),
+    minutos: 60 + Math.floor(sig() * 900),
+  }));
+}
+
+function duracion(min) {
+  if (!min) return "sin carga";
+  const d = Math.floor(min / (60*8)), r = min % (60*8);
+  const hh = Math.floor(r / 60), mm = Math.round(r % 60);
+  return `${d} d ${hh} h ${mm} min`;
+}
+const diasDe = min => +(min / (60*8)).toFixed(1);
+
+var modoMapa = "estado";
+var maquinaSel = null;
+
+function colorMaquina(m) {
+  if (modoMapa === "estado") return ESTADOS[m.e].c;
+  const d = diasDe(m.carga);
+  if (!d) return "#C4C7C9";
+  if (d > 15) return "#D42A2A";
+  if (d > 8)  return "#D9A441";
+  if (d > 3)  return "#6B7280";
+  return "#16A34A";
+}
+
+function dibujarPlanta() {
+  const ESC = 7.6;                       // píxeles por metro
+  const pt = (nv,x,y) => aLona(nv,x,y).map(v => +(v*ESC).toFixed(1));
+
+  /* Extensión de la lona */
+  let minx=1e9, miny=1e9, maxx=-1e9, maxy=-1e9;
+  for (const nv of [1,2]) for (const [x,y] of NAVES[nv].forma) {
+    const [px,py] = pt(nv,x,y);
+    minx=Math.min(minx,px); maxx=Math.max(maxx,px);
+    miny=Math.min(miny,py); maxy=Math.max(maxy,py);
+  }
+  const pad = 26, W = maxx-minx+pad*2, H = maxy-miny+pad*2;
+  const tr = ([x,y]) => `${(x-minx+pad).toFixed(1)},${(y-miny+pad).toFixed(1)}`;
+
+  const contorno = nv => NAVES[nv].forma.map(([x,y]) => tr(pt(nv,x,y))).join(" ");
+
+  /* Carretera: la franja entre el lado este de la nave 1 y el oeste de la nave 2 */
+  const carretera = [ pt(1,37,0), pt(2,14,0), pt(2,0,10), pt(2,0,70), pt(1,37,48) ]
+    .map(tr).join(" ");
+
+  const zonas = ZONAS.map(z => {
+    const c = [[z.x,z.y],[z.x+z.w,z.y],[z.x+z.w,z.y+z.l],[z.x,z.y+z.l]]
+      .map(([x,y]) => tr(pt(z.nv,x,y))).join(" ");
+    const [cx,cy] = pt(z.nv, z.x+z.w/2, z.y+z.l/2);
+    return `<polygon points="${c}" fill="${z.tipo==="acceso"?"#FDECEC":"#F2F1EE"}"
+      stroke="#DDE0E3" stroke-dasharray="5 4"/>
+      <text x="${(cx-minx+pad).toFixed(1)}" y="${(cy-miny+pad+4).toFixed(1)}"
+        text-anchor="middle" font-size="10.5" fill="#8A9097">${esc2(z.t)}</text>`;
+  }).join("");
+
+  const maquinas = MAQUINAS.map(m => {
+    const c = [[m.x,m.y],[m.x+m.w,m.y],[m.x+m.w,m.y+m.l],[m.x,m.y+m.l]]
+      .map(([x,y]) => tr(pt(m.nv,x,y))).join(" ");
+    const [cx,cy] = pt(m.nv, m.x+m.w/2, m.y+m.l/2);
+    const sel = maquinaSel === m.c;
+    return `<g class="mq" onclick="maquinaSel='${m.c}';pintar()">
+      <polygon points="${c}" fill="${colorMaquina(m)}"
+        stroke="${sel ? "#14171A" : "rgba(0,0,0,.18)"}" stroke-width="${sel ? 2.5 : 1}"/>
+      <text x="${(cx-minx+pad).toFixed(1)}" y="${(cy-miny+pad+3.5).toFixed(1)}"
+        text-anchor="middle" font-size="9.5" font-weight="700" fill="#fff"
+        style="pointer-events:none">${esc2(m.c)}</text>
+      <title>${esc2(m.n)} — ${ESTADOS[m.e].t} — ${duracion(m.carga)} de cola</title>
+    </g>`;
+  }).join("");
+
+  const etiquetas = [1,2].map(nv => {
+    const [cx,cy] = pt(nv, NAVES[nv].ancho/2, -4);
+    return `<text x="${(cx-minx+pad).toFixed(1)}" y="${(cy-miny+pad).toFixed(1)}"
+      text-anchor="middle" font-size="12.5" font-weight="600" fill="#14171A"
+      >${esc2(NAVES[nv].nombre)}</text>`;
+  }).join("");
+
+  return `<svg viewBox="0 0 ${W.toFixed(0)} ${H.toFixed(0)}" width="100%"
+    style="display:block;background:#fff;border:1px solid var(--borde);border-radius:10px">
+    <polygon points="${carretera}" fill="#EDEEF0"/>
+    <polygon points="${contorno(1)}" fill="#FBFBFC" stroke="#14171A" stroke-width="2.2"/>
+    <polygon points="${contorno(2)}" fill="#FBFBFC" stroke="#14171A" stroke-width="2.2"/>
+    ${zonas}${maquinas}${etiquetas}</svg>`;
+}
+
+const esc2 = s => String(s).replace(/[&<>"]/g, c =>
+  ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function vistaMapa() {
+  const sel = MAQUINAS.find(m => m.c === maquinaSel);
+  const conectadas = MAQUINAS.filter(m => m.e !== "sin_dato").length;
+  const vacias = MAQUINAS.filter(m => m.e === "parada" && diasDe(m.carga) < 1.5);
+  const saturadas = [...MAQUINAS].sort((a,b) => b.carga - a.carga);
+
+  const leyenda = modoMapa === "estado"
+    ? Object.values(ESTADOS).map(e =>
+        `<span class="lg"><i style="background:${e.c}"></i>${e.t}</span>`).join("")
+    : [["#16A34A","Menos de 3 días"],["#6B7280","3 a 8 días"],
+       ["#D9A441","8 a 15 días"],["#D42A2A","Más de 15 días"],
+       ["#C4C7C9","Sin conectar"]].map(([c,t]) =>
+        `<span class="lg"><i style="background:${c}"></i>${t}</span>`).join("");
+
+  let ordenes = [], actual = null;
+  if (sel && sel.carga) {
+    ordenes = ordenesDe(sel);
+    actual = ordenes[0];
+  }
+
+  return `
+  <div class="cabecera">
+    <div><h1>Mapa de planta</h1>
+      <p>${MAQUINAS.length} máquinas · ${conectadas} conectadas · actualiza cada 30 s</p></div>
+    <div style="display:flex;gap:8px">
+      <button class="filtro ${modoMapa==="estado"?"activo":""}"
+        onclick="modoMapa='estado';pintar()">Por estado</button>
+      <button class="filtro ${modoMapa==="carga"?"activo":""}"
+        onclick="modoMapa='carga';pintar()">Por carga</button>
+    </div>
+  </div>
+
+  <div style="padding:0 24px 16px">
+    ${vacias.length ? `
+      <div class="aviso importante" style="margin-bottom:14px">
+        <span class="ic">!</span>
+        <span><strong>${vacias.length} máquinas paradas y sin cola</strong>
+        (${vacias.slice(0,3).map(m=>esc(m.c)).join(", ")}) mientras
+        ${esc(saturadas[0].c)} acumula ${duracion(saturadas[0].carga)}.
+        Es el desequilibrio que hace que haya gente parada y a la vez se vaya tarde.</span>
+      </div>` : ""}
+
+    <div class="leyenda" style="margin-bottom:12px">${leyenda}</div>
+
+    <div class="g3">
+      <div class="tarjeta" style="padding:12px">
+        ${dibujarPlanta()}
+        <p class="nota" style="margin-top:10px">
+          Nave 1 medida sobre la foto aérea: rectángulo girado 45°, proporción 1,31.
+          La nave 2 sale cortada en la foto, así que su tamaño es estimado.</p>
+      </div>
+
+      <div>
+        ${sel ? `
+        <div class="tarjeta" style="margin-bottom:14px">
+          <h3>${esc(sel.n)}</h3>
+          <div class="sub2">${esc(sel.c)} · ${esc(sel.s)} · Nave ${sel.nv}</div>
+
+          ${actual ? `
+            <div style="background:var(--lienzo);border-radius:8px;padding:12px;
+                        margin-bottom:14px">
+              <div class="etiqueta">Orden en curso</div>
+              <div style="font-weight:600;margin-top:5px">Nº ${actual.num}</div>
+              <div style="font-size:13px">${esc(actual.cliente)}</div>
+              <div class="sub" style="margin-top:6px">
+                Iniciada hoy 10:30 por ${esc(OPERARIOS[sel.c.length % OPERARIOS.length])}<br>
+                ${actual.uds} unidades · finalizada: no</div>
+            </div>` : `
+            <div class="aviso menor" style="margin-bottom:14px">
+              <span class="ic">i</span><span>Sin orden en curso.</span></div>`}
+
+          <div class="etiqueta">Carga de trabajo</div>
+          <div class="cifra" style="font-size:22px;font-weight:600;margin:4px 0 8px">
+            ${duracion(sel.carga)}</div>
+          <div class="barra"><span style="width:${Math.min(100, diasDe(sel.carga)/20*100)}%;
+            background:${colorMaquina(sel)}"></span></div>
+
+          <div class="etiqueta" style="margin-top:16px">Lista de espera
+            (${Math.max(0, ordenes.length-1)})</div>
+          <div style="max-height:230px;overflow-y:auto;margin-top:6px;
+                      border:1px solid var(--borde);border-radius:8px">
+            ${ordenes.length > 1 ? ordenes.slice(1).map(o => `
+              <div style="padding:8px 11px;border-bottom:1px solid #f0f1f3;font-size:13px">
+                <span class="cifra" style="font-weight:500">${o.num}</span>
+                <span class="sub"> — ${esc(o.cliente)}</span>
+                <div class="sub" style="font-size:11.5px">${o.uds} uds ·
+                  ${duracion(o.minutos)}</div>
+              </div>`).join("")
+              : `<div class="sub" style="padding:12px">Nada en espera.</div>`}
+          </div>
+
+          <p class="nota" style="margin-top:12px">Datos de ejemplo. Con el ERP conectado,
+          esto es lo que devuelve Control de Rutas por Máquina.</p>
+        </div>` : `
+        <div class="tarjeta" style="margin-bottom:14px">
+          <h3>Pulsa una máquina</h3>
+          <div class="sub2">Verás la orden en curso, la carga de trabajo y la lista
+            de espera, como en el ERP.</div>
+        </div>`}
+
+        <div class="tarjeta">
+          <h3>Las seis más cargadas</h3>
+          <div class="sub2">Días de trabajo pendiente</div>
+          ${gBarrasH(saturadas.slice(0,6).map(m => ({e:m.c+" "+m.n.split(" ")[0],
+            v:diasDe(m.carga), color:colorMaquina(m)})), {formato: v => v + " d"})}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ============================================================
+   VISTA: ASISTENTE
+   ============================================================ */
+var conversacion = [
+  {de:"bot", txt:"Puedo consultar los datos de la empresa o resolver dudas técnicas "+
+   "de mecanizado. Si no sé algo, te lo diré en vez de inventarlo."}
+];
+
+const SUGERENCIAS = [
+  "¿Cuántas ofertas le hemos hecho a YUK?",
+  "¿Cómo vamos respecto a otros años?",
+  "¿Qué tal convertimos con Chains & Sprockets?",
+  "¿Qué significa ISO 2768-m?",
+  "¿A cuánto vendemos el piñón Z18?",
+  "¿Qué taladro lleva una M8?",
+];
+
+function vistaAsistente() {
+  return `
+  <div class="cabecera">
+    <div><h1>Asistente</h1>
+      <p>Pregunta por los datos de la empresa o por dudas técnicas</p></div>
+  </div>
+  <div style="padding:0 24px 16px">
+    <div class="sug">
+      ${SUGERENCIAS.map(s => `<button onclick="preguntar('${s.replace(/'/g,"\\'")}')">${esc(s)}</button>`).join("")}
+    </div>
+    <div class="chat">
+      <div class="msgs" id="msgs">
+        ${conversacion.map(m => {
+          if (m.de === "yo") return `<div class="burb yo">${esc(m.txt)}</div>`;
+          const fuente = m.carril === "datos"
+            ? `<div class="fuente">Base de datos de Luanfra</div>`
+            : m.carril === "tecnico"
+            ? `<div class="fuente tec">Conocimiento técnico general, NO datos de Luanfra</div>`
+            : "";
+          const filas = m.filas ? `<table style="margin-top:10px;font-size:13px">
+            ${m.filas.map(f=>`<tr><td style="padding:5px 10px">${esc(f[0])}</td>
+              <td class="der cifra" style="padding:5px 10px;font-weight:500">${esc(f[1])}</td></tr>`).join("")}
+            </table>` : "";
+          return `<div class="burb bot">${esc(m.txt)}${filas}${fuente}</div>`;
+        }).join("")}
+      </div>
+      <div class="entrada">
+        <input class="campo" id="pregunta" placeholder="Escribe tu pregunta…"
+          onkeydown="if(event.key==='Enter')preguntar(this.value)">
+        <button class="btn btn-prim" onclick="preguntar(document.getElementById('pregunta').value)">
+          Enviar</button>
+      </div>
+    </div>
+    <p class="nota" style="margin-top:12px">
+      El asistente no escribe SQL: elige entre consultas ya preparadas. Un modelo que
+      se equivoca en una consulta no da un error, da un número plausible y falso.</p>
+  </div>`;
+}
+
+function preguntar(texto) {
+  texto = (texto || "").trim();
+  if (!texto) return;
+  conversacion.push({de:"yo", txt:texto});
+
+  const r = RESPUESTAS.find(x => x.p.test(texto));
+  if (r) {
+    conversacion.push({de:"bot", txt:r.t, carril:r.carril, filas:r.filas});
+  } else {
+    conversacion.push({de:"bot", carril:"no_se",
+      txt:"No sé responder a eso con los datos que tengo. Prueba con alguna de las "+
+          "sugerencias de arriba: puedo consultar ofertas por cliente, evolución por "+
+          "año, precios de una pieza y carga del taller."});
+  }
+  pintar();
+  const m = document.getElementById("msgs");
+  if (m) m.scrollTop = m.scrollHeight;
+}
+
+/* ============================================================
+   ACCIONES
+   ============================================================ */
+function alternarCorreccion() {
+  const f = document.getElementById("formCorreccion");
+  f.style.display = f.style.display === "none" ? "block" : "none";
+  if (f.style.display === "block") document.getElementById("nuevoPrecio").focus();
+}
+
+function validarPrecio(id) {
+  const o = OFERTAS.find(x => x.id === id);
+  const v = parseFloat(document.getElementById("nuevoPrecio").value);
+  const err = document.getElementById("errPrecio");
+  const btn = document.getElementById("btnGuardar");
+  if (isNaN(v)) { err.style.display="none"; btn.disabled = true; return false; }
+  if (o.coste != null && v < o.coste) {
+    err.textContent = `No puede quedar por debajo del coste (${eur(o.coste)}).`;
+    err.style.display = "block"; btn.disabled = true; return false;
+  }
+  err.style.display = "none"; btn.disabled = false; return true;
+}
+
+function corregir(id) {
+  if (!validarPrecio(id)) { brindis("Revisa el precio antes de guardar.", false); return; }
+  const o = OFERTAS.find(x => x.id === id);
+  const nuevo = parseFloat(document.getElementById("nuevoPrecio").value);
+  const motivo = document.getElementById("motivo").value.trim();
+  o.correcciones.unshift({ antes:o.precio, despues:nuevo, motivo });
+  o.precio = nuevo;
+  const amp = (1 - o.confianza) * 0.30;
+  o.min = +(nuevo * (1-amp)).toFixed(2);
+  o.max = +(nuevo * (1+amp)).toFixed(2);
+  brindis("Corrección guardada.");
+  pintar();
+}
+
+function aprobar(id) {
+  const o = OFERTAS.find(x => x.id === id);
+  if (o.precio == null) { brindis("Esta oferta no tiene precio propuesto. Corrígela antes.", false); return; }
+  o.estado = "revisada";
+  brindis("Oferta marcada como revisada. No se ha enviado nada.");
+  pintar();
+}
+
+function descartar(id) {
+  const o = OFERTAS.find(x => x.id === id);
+  o.estado = "descartada";
+  brindis("Oferta descartada.");
+  irA("ofertas");
+}
+
+function simular() {
+  const cod = document.getElementById("simCentro").value;
+  const cant = parseInt(document.getElementById("simCantidad").value, 10);
+  const mpp  = parseFloat(document.getElementById("simMinutos").value);
+  const salida = document.getElementById("simResultado");
+  if (isNaN(cant) || isNaN(mpp) || cant < 1 || mpp <= 0) {
+    salida.innerHTML = `<p class="nota" style="color:var(--marca)">Introduce una cantidad y un tiempo válidos.</p>`;
+    return;
+  }
+  const c = CENTROS.find(x => x.cod === cod);
+  const minDia = c.horas * 60 * c.factor;
+  const nuevos = cant * mpp;
+  const antes = c.cola / minDia;
+  const despues = (c.cola + nuevos) / minDia;
+  const optimo = Math.max(1, Math.ceil(despues));
+  const comprometible = Math.max(optimo + 1, Math.ceil(optimo * 1.6));
+  const afectadas = OFERTAS.filter(o => o.estado === "borrador" && o.precio != null).slice(0,3);
+
+  salida.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px">
+      <div class="kpi"><div class="etiqueta">Carga añadida</div>
+        <div class="valor cifra">${horas(Math.round(nuevos))}</div></div>
+      <div class="kpi"><div class="etiqueta">Cola antes → después</div>
+        <div class="valor cifra">${antes.toFixed(1)} → ${despues.toFixed(1)} d</div></div>
+      <div class="kpi"><div class="etiqueta">Se retrasa</div>
+        <div class="valor cifra acento">+${(despues-antes).toFixed(1)} días</div></div>
+    </div>
+    <div class="aviso ${despues-antes > 5 ? "bloqueante" : despues-antes > 2 ? "importante" : "menor"}">
+      <span class="ic">${despues-antes > 2 ? "!" : "i"}</span>
+      <span>Fecha óptima <strong>${optimo} días</strong>, comprometible <strong>${comprometible} días</strong>.
+      ${despues-antes > 2
+        ? `Todo lo que pase por ${cod} se desplaza. Con ${afectadas.length} ofertas abiertas en cola,
+           conviene avisar antes de aceptar.`
+        : `Impacto pequeño. Se puede aceptar sin mover nada.`}</span>
+    </div>`;
+}
+
+/* ============================================================
+   ARRANQUE
+   ============================================================ */
+function pintar() {
+  pintarLateral();
+  const v = document.getElementById("vista");
+  const p = ruta.pantalla;
+  v.innerHTML =
+      p === "panel"     ? vistaPanel()
+    : p === "peticion"  ? vistaPeticion()
+    : p === "avisos"    ? vistaAvisos()
+    : p === "kpis"      ? vistaKpis()
+    : p === "asistente" ? vistaAsistente()
+    : p === "mapa"      ? vistaMapa()
+    : p === "ofertas"  ? vistaOfertas()
+    : p === "ficha"    ? vistaFicha(ruta.id)
+    : p === "planos"   ? vistaPlanos()
+    : p === "taller"   ? vistaTaller()
+    : p === "clientes" ? vistaClientes()
+    : p === "ajustes"  ? vistaAjustes()
+    : vistaPanel();
+  if (p === "taller") simular();
+  if (p === "peticion") engancharZona();
+}
+
+pintar();
+</script>
+</body>
+</html>

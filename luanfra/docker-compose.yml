@@ -1,0 +1,59 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: luanfra_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${BD_NOMBRE:-luanfra}
+      POSTGRES_USER: ${BD_USUARIO:-luanfra}
+      POSTGRES_PASSWORD: ${BD_PASSWORD:-cambia_esta_password}
+      TZ: Europe/Madrid
+    ports: ["5432:5432"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/modelo-datos.sql:/docker-entrypoint-initdb.d/01-modelo.sql:ro
+      - ./db/002-ajustes-erp.sql:/docker-entrypoint-initdb.d/02-ajustes.sql:ro
+      - ./backups:/backups
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${BD_USUARIO:-luanfra}"]
+      interval: 10s
+      retries: 5
+
+  api:
+    build: ./api
+    container_name: luanfra_api
+    restart: unless-stopped
+    environment:
+      BD_HOST: db
+      BD_PUERTO: 5432
+      BD_NOMBRE: ${BD_NOMBRE:-luanfra}
+      BD_USUARIO: ${BD_USUARIO:-luanfra}
+      BD_PASSWORD: ${BD_PASSWORD:-cambia_esta_password}
+      ENTORNO: ${ENTORNO:-desarrollo}
+    ports: ["8000:8000"]
+    volumes:
+      - ./api:/app          # recarga en caliente durante el desarrollo
+      - ./almacen:/almacen
+    depends_on:
+      db: {condition: service_healthy}
+
+  web:
+    build: ./web
+    container_name: luanfra_web
+    restart: unless-stopped
+    ports: ["5173:5173"]
+    volumes:
+      - ./web:/app
+      - /app/node_modules
+    depends_on: [api]
+
+  adminer:
+    image: adminer:latest
+    container_name: luanfra_adminer
+    restart: unless-stopped
+    ports: ["8080:8080"]
+    depends_on:
+      db: {condition: service_healthy}
+
+volumes:
+  pgdata:

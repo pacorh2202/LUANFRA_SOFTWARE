@@ -1,0 +1,6 @@
+codigo;nombre;nave;seccion;x;y;ancho;largo;orientacion;notas
+TORNO-CNC-01;Torno CNC CMZ TA-25;1;TORNOS CNC;2,0;3,0;3,5;2,0;horizontal;
+TORNO-CNC-02;Torno CNC TBI-520;1;TORNOS CNC;2,0;6,0;3,5;2,0;horizontal;
+FRESA-BF04;Fresadora BF-04;1;FRESADORA CNC;8,0;3,0;4,0;3,0;horizontal;cuello de botella
+SORALUCE-01;Mandrinadora Soraluce;2;CENTROS DE MECANIZADO;3,0;4,0;12,0;4,0;horizontal;X10000 Y1500 Z3000
+SIERRA-01;Sierra Danobat CR 330;1;SIERRA;0,5;1,0;2,5;1,5;vertical;entrada de material
