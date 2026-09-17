@@ -1,11 +1,18 @@
 const BASE = import.meta.env.VITE_API ?? "/api";
 
-async function pedir(ruta, opciones) {
-  const r = await fetch(`${BASE}${ruta}`, opciones);
+let claveAcceso = "";
+export function configurarAcceso(clave) { claveAcceso = clave; }
+export async function comprobarAcceso() { return pedir("/sesion"); }
+
+async function pedir(ruta, opciones = {}) {
+  const r = await fetch(`${BASE}${ruta}`, {
+    ...opciones,
+    headers: { ...opciones.headers, Authorization: `Bearer ${claveAcceso}` },
+  });
   if (!r.ok) {
     let detalle = `Error ${r.status}`;
     try { detalle = (await r.json()).detail ?? detalle; } catch { /* respuesta sin json */ }
-    throw new Error(detalle);
+    throw new Error(typeof detalle === "string" ? detalle : "Revisa los campos introducidos: " + detalle.map(x => `${x.loc?.slice(1).join(".")}: ${x.msg}`).join("; "));
   }
   return r.status === 204 ? null : r.json();
 }
@@ -17,6 +24,7 @@ const json = (cuerpo) => ({
 });
 
 export const api = {
+  plazo: (p) => pedir("/calculo/plazo", json(p)),
   kpis:    ()      => pedir("/panel/kpis"),
   ofertas: (p = {}) => pedir(`/ofertas?${new URLSearchParams(
                           Object.entries(p).filter(([, v]) => v))}`),

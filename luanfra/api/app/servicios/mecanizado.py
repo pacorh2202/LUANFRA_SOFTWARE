@@ -393,6 +393,7 @@ class Ruta:
     avisos: list[str] = field(default_factory=list)
     confianza: float = 0.0
     sugerencias: list[str] = field(default_factory=list)
+    supuestos: list[str] = field(default_factory=list)
 
     @property
     def minutos_unitario(self) -> float:
@@ -422,6 +423,14 @@ def generar_ruta(*, familia: str | None, material: str | None,
     """
     tratamientos = tratamientos or []
     ruta = Ruta()
+    for nombre, valor in (("diámetro", diametro_mm), ("longitud", longitud_mm),
+                          ("ancho", ancho_mm), ("módulo", modulo),
+                          ("tolerancia", tolerancia_mm), ("rugosidad", rugosidad_ra),
+                          ("bruto", diametro_bruto_mm), ("paso", paso_cadena_mm),
+                          ("dientes", dientes_z)):
+        if valor is not None and (not math.isfinite(valor) or valor <= 0):
+            raise ValueError(f"{nombre}: valor positivo y finito requerido")
+    ruta.supuestos.append("Tiempos de corte y preparación teóricos; validar amarres y calibración por máquina")
     seq = 0
 
     def añadir(tipo: str, desc: str, minutos: float, motivo: str = "",
@@ -458,6 +467,18 @@ def generar_ruta(*, familia: str | None, material: str | None,
         return ruta
 
     templado = any(t in tratamientos for t in ("templado", "cementado", "nitrurado"))
+    if diametro_bruto_mm is None:
+        ruta.supuestos.append("Dimensiones del bruto propuestas, pendientes de confirmar")
+    if revolucion and longitud_mm is None:
+        ruta.supuestos.append("Longitud sustituida por el diámetro")
+    if familia in ("brida", "tapa"):
+        ruta.supuestos.append("Número y diámetro de taladros supuestos por familia; confirmar plano")
+    if familia in ("casquillo", "acoplamiento"):
+        ruta.supuestos.append("Diámetro interior supuesto como 60 % del exterior")
+    if familia in ("pletina", "soporte", "chapa"):
+        ruta.supuestos.append("Proceso de corte y sobremedida propuestos; confirmar material de partida")
+    if familia in ("pinon", "pinon_doble", "corona", "polea", "acoplamiento"):
+        ruta.supuestos.append("Chavetero y dimensiones de dentado requieren confirmación")
     bruto = diametro_bruto_mm or (diametro_mm * 1.08 + 4 if diametro_mm else None)
 
     # --- 1. Preparar el material -------------------------------------------
@@ -549,6 +570,9 @@ def generar_ruta(*, familia: str | None, material: str | None,
         ruta.sugerencias.append(
             "Inox largo: conviene prever puntos y luneta, y contar más tiempo de amarre.")
 
+    if ruta.supuestos:
+        ruta.confianza = min(ruta.confianza, 0.6)
+        ruta.avisos.extend(ruta.supuestos)
     ruta.confianza = round(ruta.confianza, 3)
     return ruta
 

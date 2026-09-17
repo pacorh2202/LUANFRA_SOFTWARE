@@ -5,6 +5,7 @@ Nada de lo que hay aquí envía un correo. Aprobar cambia un estado interno
 y deja rastro en auditoría; el envío al cliente lo hace siempre una persona.
 """
 from datetime import date
+from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -13,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.auditoria import registrar
 from app.bd import obtener_sesion
+from app.seguridad import actor_actual
 
 router = APIRouter(prefix="/ofertas", tags=["ofertas"])
 
@@ -134,16 +136,15 @@ def ficha(oferta_id: int, sesion: Session = Depends(obtener_sesion)):
 
 
 class Correccion(BaseModel):
-    precio: float | None = None
+    precio: Decimal | None = Field(default=None, ge=0)
     fecha_comprometible: date | None = None
-    motivo: str = Field(default="", max_length=500)
-    usuario: str = "paco"
+    motivo: str = Field(min_length=1, max_length=500)
 
 
 @router.post("/{oferta_id}/aprobar")
-def aprobar(oferta_id: int, usuario: str = "paco", sesion: Session = Depends(obtener_sesion)):
+def aprobar(oferta_id: int, usuario: str = Depends(actor_actual), sesion: Session = Depends(obtener_sesion)):
     fila = sesion.execute(
-        text("SELECT estado, precio_propuesto, via FROM ops.oferta WHERE id=:id"),
+        text("SELECT estado, precio_propuesto, via FROM ops.oferta WHERE id=:id FOR UPDATE"),
         {"id": oferta_id}).mappings().first()
     if not fila:
         raise HTTPException(404, "Oferta no encontrada")
@@ -152,6 +153,20 @@ def aprobar(oferta_id: int, usuario: str = "paco", sesion: Session = Depends(obt
         raise HTTPException(422, "Esta oferta no tiene precio propuesto. Corrígela antes.")
     if fila["estado"] != "borrador":
         raise HTTPException(409, f"La oferta ya está en estado '{fila['estado']}'.")
+
+    bloqueantes = sesion.execute(text("""
+        SELECT count(*) FROM ops.oferta o
+        JOIN ops.peticion_documento pd ON pd.peticion_id = o.peticion_id
+        JOIN core.documento d ON d.id = pd.documento_id
+        LEFT JOIN LATERAL (
+            SELECT ap.bloqueantes FROM ops.analisis_plano ap
+            WHERE ap.documento_id = d.id ORDER BY ap.creado_en DESC, ap.id DESC LIMIT 1
+        ) a ON true
+        WHERE o.id = :id AND d.tipo = 'plano'
+          AND (a.bloqueantes IS NULL OR a.bloqueantes > 0)
+    """), {"id": oferta_id}).scalar()
+    if bloqueantes:
+        raise HTTPException(422, "Hay planos pendientes de revisión o con bloqueantes.")
 
     sesion.execute(text("UPDATE ops.oferta SET estado='revisada' WHERE id=:id"),
                    {"id": oferta_id})
@@ -162,20 +177,28 @@ def aprobar(oferta_id: int, usuario: str = "paco", sesion: Session = Depends(obt
 
 
 @router.post("/{oferta_id}/corregir")
-def corregir(oferta_id: int, c: Correccion, sesion: Session = Depends(obtener_sesion)):
+def corregir(oferta_id: int, c: Correccion, sesion: Session = Depends(obtener_sesion),
+             usuario: str = Depends(actor_actual)):
     """
     Cada corrección se guarda con su valor antes y después.
     Es la señal más valiosa del sistema: con doscientas registradas,
     el modelo empieza a reproducir el criterio real de quien presupuesta.
     """
     antes = sesion.execute(text("""
-        SELECT precio_propuesto, fecha_entrega_comprometible, coste_calculado
-        FROM ops.oferta WHERE id=:id"""), {"id": oferta_id}).mappings().first()
+        SELECT precio_propuesto, fecha_entrega_comprometible, coste_calculado, estado
+        FROM ops.oferta WHERE id=:id FOR UPDATE"""), {"id": oferta_id}).mappings().first()
     if not antes:
         raise HTTPException(404, "Oferta no encontrada")
 
+    if antes["estado"] != "borrador":
+        raise HTTPException(409, "Solo se puede corregir un borrador; cree una nueva revisión.")
+    if c.precio is None and c.fecha_comprometible is None:
+        raise HTTPException(422, "La corrección no contiene cambios")
+    if not c.motivo.strip():
+        raise HTTPException(422, "Explique el motivo de la corrección")
+
     if c.precio is not None:
-        if antes["coste_calculado"] and c.precio < float(antes["coste_calculado"]):
+        if antes["coste_calculado"] is not None and c.precio < antes["coste_calculado"]:
             raise HTTPException(422, "El precio no puede quedar por debajo del coste calculado.")
         sesion.execute(text("UPDATE ops.oferta SET precio_propuesto=:p WHERE id=:id"),
                        {"p": c.precio, "id": oferta_id})
@@ -184,7 +207,7 @@ def corregir(oferta_id: int, c: Correccion, sesion: Session = Depends(obtener_se
               (oferta_id, campo, valor_propuesto, valor_corregido, motivo, usuario)
             VALUES (:o,'precio_propuesto',:vp,:vc,:m,:u)"""), {
             "o": oferta_id, "vp": str(antes["precio_propuesto"]),
-            "vc": str(c.precio), "m": c.motivo, "u": c.usuario})
+            "vc": str(c.precio), "m": c.motivo, "u": usuario})
 
     if c.fecha_comprometible is not None:
         sesion.execute(
@@ -195,16 +218,16 @@ def corregir(oferta_id: int, c: Correccion, sesion: Session = Depends(obtener_se
               (oferta_id, campo, valor_propuesto, valor_corregido, motivo, usuario)
             VALUES (:o,'fecha_entrega_comprometible',:vp,:vc,:m,:u)"""), {
             "o": oferta_id, "vp": str(antes["fecha_entrega_comprometible"]),
-            "vc": str(c.fecha_comprometible), "m": c.motivo, "u": c.usuario})
+            "vc": str(c.fecha_comprometible), "m": c.motivo, "u": usuario})
 
     registrar(sesion, "corregir", "oferta", oferta_id,
-              antes=dict(antes), despues=c.model_dump(), actor=c.usuario)
+              antes=dict(antes), despues=c.model_dump(), actor=usuario)
     sesion.commit()
     return {"id": oferta_id, "corregida": True}
 
 
 @router.post("/{oferta_id}/descartar")
-def descartar(oferta_id: int, motivo: str = "", usuario: str = "paco",
+def descartar(oferta_id: int, motivo: str = "", usuario: str = Depends(actor_actual),
               sesion: Session = Depends(obtener_sesion)):
     n = sesion.execute(
         text("UPDATE ops.oferta SET estado='descartada' WHERE id=:id AND estado='borrador'"),

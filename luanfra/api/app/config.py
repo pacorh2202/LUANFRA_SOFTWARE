@@ -19,9 +19,10 @@ class Ajustes(BaseSettings):
     ruta_almacen: str = "./almacen"
     anthropic_api_key: str = ""
     entorno: str = "desarrollo"
+    acceso_claves_json: str = "{}"
 
     # Versión del modelo de cálculo. Toda oferta guarda con cuál se calculó.
-    version_modelo: str = "2026.09-a"
+    version_modelo: str = "2026.09-b"
 
     @property
     def url_bd(self) -> str:

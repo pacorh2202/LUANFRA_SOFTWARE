@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.example
+**/__pycache__/
+**/.pytest_cache/
+**/.venv/
+**/node_modules/
+**/dist/
+**/datos/
+!luanfra/api/tests/datos/
+**/backups/
+**/almacen/
+**/salida/
+**/upload/
+*.bak
+*.log
