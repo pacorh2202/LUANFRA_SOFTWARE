@@ -245,7 +245,7 @@ export default function FichaOferta() {
               <p className="text-xs text-tinta-tenue flex gap-1.5 pt-1 leading-relaxed">
                 <Clock size={13} className="shrink-0 mt-0.5" />
                 Al cliente se le da la fecha comprometible: es la que se cumple
-                ocho de cada diez veces.
+                según la carga y el colchón configurado; pendiente de validar con entregas reales.
               </p>
             </div>
           </Panel>

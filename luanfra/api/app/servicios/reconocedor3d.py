@@ -226,7 +226,7 @@ def _clasificar_caras(forma) -> list[Cara]:
     exp = TopExp_Explorer(forma, TopAbs_FACE)
     i = 0
     while exp.More():
-        cara = TopoDS.Face(exp.Current())
+        cara = TopoDS.Face_s(exp.Current())
         exp.Next()
         i += 1
         try:

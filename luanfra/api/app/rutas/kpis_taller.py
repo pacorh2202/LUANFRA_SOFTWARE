@@ -42,7 +42,7 @@ def _datos_disponibles(sesion: Session) -> set[str]:
                                "fecha de cierre", "fechas de pedido y entrega"}
     if d["abiertas"]:  hay |= {"órdenes abiertas"}
     if d["colas"]:     hay |= {"cola por máquina"}
-    if d["centros"]:   hay |= {"calendario de turnos", "calendario"}
+    # Centros activos no prueban que exista un calendario medido.
     if d["albaranes"]: hay |= {"fecha de pedido", "fecha de albarán"}
     return hay
 
@@ -73,7 +73,7 @@ def cuadro(sesion: Session = Depends(obtener_sesion), meses: int = Query(3, ge=1
         SELECT coalesce(sum(p.minutos), 0) AS producidos,
                coalesce(sum(p.cantidad_ok), 0) AS buenas,
                coalesce(sum(p.cantidad_ok + p.cantidad_rechazo), 0) AS totales,
-               coalesce(sum(r.minutos_unitario * p.cantidad_ok), 0) AS ideales,
+               coalesce(sum(r.minutos_unitario * (p.cantidad_ok + p.cantidad_rechazo)), 0) AS ideales,
                count(*) AS partes,
                count(DISTINCT p.centro_trabajo_id) AS centros,
                count(DISTINCT p.inicio::date) AS dias
@@ -82,25 +82,11 @@ def cuadro(sesion: Session = Depends(obtener_sesion), meses: int = Query(3, ge=1
         WHERE p.inicio >= current_date - (:m || ' months')::interval
     """, {"m": meses})
 
-    if m["partes"] and m["totales"]:
-        planificados = float(m["centros"] or 1) * float(m["dias"] or 1) * 8 * 60
-        try:
-            r = kt.oee(float(m["producidos"]), planificados,
-                       float(m["buenas"]), float(m["totales"]),
-                       float(m["ideales"] or m["producidos"]))
-            for clave, valor in (("oee", r["oee"]), ("disponibilidad", r["disponibilidad"]),
-                                 ("rendimiento", r["rendimiento"]),
-                                 ("calidad_oee", r["calidad"])):
-                i = kt.Indicador(kt._def(clave), valor, int(m["partes"]))
-                if clave == "oee":
-                    i.detalle = {"lectura": kt.clasificar_oee(valor), **r}
-                ind.append(i)
-        except ValueError:
-            for c in ("oee", "disponibilidad", "rendimiento", "calidad_oee"):
-                falta(c)
-    else:
-        for c in ("oee", "disponibilidad", "rendimiento", "calidad_oee"):
-            falta(c)
+    # No hay todavía calendario por fecha ni estados CNC depurados. Los partes
+    # y ocho horas supuestas no permiten publicar un OEE medido.
+    for clave in ("oee", "disponibilidad", "rendimiento", "calidad_oee"):
+        ind.append(kt._sin_dato(clave, ["calendario real por máquina y fecha",
+                                       "tiempo de marcha medido", "ciclo ideal validado"]))
 
     # --- Preparación y lotes ---
     p = _escalar(sesion, """
@@ -183,12 +169,14 @@ def cuadro(sesion: Session = Depends(obtener_sesion), meses: int = Query(3, ge=1
     # --- Coste y estimación ---
     pares = sesion.execute(text("""
         SELECT r.minutos_unitario::numeric AS est,
-               (p.minutos::numeric / nullif(o.cantidad, 0)) AS real_medido
+               (sum(p.minutos)::numeric / nullif(sum(p.cantidad_ok + p.cantidad_rechazo), 0)) AS real_medido
         FROM core.parte_trabajo p
         JOIN core.orden_fabricacion o ON o.id = p.orden_id
         JOIN core.operacion_ruta r    ON r.id = p.operacion_ruta_id
-        WHERE p.minutos > 0 AND o.cantidad > 0 AND r.minutos_unitario > 0
-    """)).all()
+        WHERE p.minutos > 0 AND (p.cantidad_ok + p.cantidad_rechazo) > 0 AND r.minutos_unitario > 0
+          AND p.inicio >= current_date - (:m || ' months')::interval
+        GROUP BY o.id, r.id, r.minutos_unitario
+    """), {"m": meses}).all()
     if pares:
         f = kt.fiabilidad([(float(a), float(b)) for a, b in pares if a and b])
         i = kt.Indicador(kt._def("fiabilidad_estimacion"), f["dentro"], f["muestras"])
@@ -200,6 +188,10 @@ def cuadro(sesion: Session = Depends(obtener_sesion), meses: int = Query(3, ge=1
     else:
         falta("fiabilidad_estimacion"); falta("desviacion_tiempos")
     falta("coste_hora_real"); falta("horas_por_operario")
+
+    for indicador in ind:
+        if indicador.definicion.clave == "ratio_preparacion":
+            indicador.detalle = {"origen": "estimación de rutas; no preparación medida"}
 
     # --- Agrupado por categoría ---
     bloques = []

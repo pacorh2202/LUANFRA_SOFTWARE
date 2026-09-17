@@ -1,7 +1,8 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import ajustes
+from app.seguridad import autenticar
 from app.rutas import (analisis, asistente, avisos, calculo, kpis,
                        kpis_taller, mecanizado, ofertas, panel, piezas, salud)
 
@@ -12,14 +13,6 @@ app = FastAPI(
         "Capa propia sobre el ERP. Solo lectura del ERP, nunca escribe en él. "
         "Sin permisos de envío al exterior."
     ),
-)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:5173"] if ajustes.entorno == "desarrollo" else [],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
 )
 
 app.include_router(salud.router)
@@ -33,3 +26,14 @@ app.include_router(asistente.router)
 app.include_router(kpis.router)
 app.include_router(kpis_taller.router)
 app.include_router(mecanizado.router)
+
+# CORS fuera de autenticación para permitir el preflight del cliente local.
+app.middleware("http")(autenticar)
+app.add_middleware(
+    CORSMiddleware, allow_origins=["http://localhost:5173"] if ajustes.entorno == "desarrollo" else [],
+    allow_methods=["GET", "POST"], allow_headers=["Authorization", "Content-Type"],
+)
+
+@app.get("/sesion")
+def sesion(request: Request):
+    return {"usuario": request.state.actor, "alcance": "administrador_piloto"}

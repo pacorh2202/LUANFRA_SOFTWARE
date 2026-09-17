@@ -24,10 +24,10 @@ router = APIRouter(prefix="/mecanizado", tags=["mecanizado"])
 class PeticionRuta(BaseModel):
     descripcion: str = Field(min_length=1, max_length=500)
     cantidad: int = Field(gt=0, default=1)
-    tolerancia_mm: float | None = None
-    rugosidad_ra: float | None = None
-    modulo: float | None = None
-    ancho_mm: float | None = None
+    tolerancia_mm: float | None = Field(default=None, gt=0)
+    rugosidad_ra: float | None = Field(default=None, gt=0)
+    modulo: float | None = Field(default=None, gt=0)
+    ancho_mm: float | None = Field(default=None, gt=0)
 
 
 @router.post("/ruta")
@@ -42,26 +42,34 @@ def ruta(p: PeticionRuta, sesion: Session = Depends(obtener_sesion)):
 
     paso_mm = mz.PASOS_CADENA_MM.get(pieza.paso_cadena or "")
 
-    r = mz.generar_ruta(
-        familia=pieza.familia, material=pieza.material,
-        diametro_mm=pieza.diametro_mm, longitud_mm=pieza.longitud_mm,
-        ancho_mm=p.ancho_mm or pieza.ancho_mm, dientes_z=pieza.dientes_z,
-        modulo=p.modulo, tolerancia_mm=p.tolerancia_mm,
-        rugosidad_ra=p.rugosidad_ra, tratamientos=pieza.tratamientos,
-        paso_cadena_mm=paso_mm)
+    try:
+        r = mz.generar_ruta(
+            familia=pieza.familia, material=pieza.material,
+            diametro_mm=pieza.diametro_mm, longitud_mm=pieza.longitud_mm,
+            ancho_mm=p.ancho_mm or pieza.ancho_mm, dientes_z=pieza.dientes_z,
+            modulo=p.modulo, tolerancia_mm=p.tolerancia_mm,
+            rugosidad_ra=p.rugosidad_ra, tratamientos=pieza.tratamientos,
+            paso_cadena_mm=paso_mm)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
 
     # Tarifas vigentes, para traducir minutos a euros
     tarifas = {f["codigo"]: float(f["tarifa_minuto"])
                for f in sesion.execute(text(
                    "SELECT codigo, tarifa_minuto FROM core.v_tarifa_actual")).mappings()}
-    tarifa_media = sum(tarifas.values()) / len(tarifas) if tarifas else 0.50
+    faltantes = set()
 
     operaciones, coste_mo = [], 0.0
     for o in r.operaciones:
-        tarifa = tarifas.get(o.tipo_maquina.upper(), tarifa_media)
-        importe = round((o.minutos_unitario * p.cantidad + o.minutos_preparacion) * tarifa, 2)
-        coste_mo += importe
-        operaciones.append({**o.__dict__, "tarifa_minuto": round(tarifa, 4),
+        tarifa = tarifas.get(o.tipo_maquina.upper())
+        importe = None
+        # Una familia no identifica una máquina. No sustituir una tarifa ausente.
+        if tarifa is None or o.es_externa:
+            faltantes.add(o.tipo_maquina)
+        else:
+            importe = round((o.minutos_unitario * p.cantidad + o.minutos_preparacion) * tarifa, 2)
+            coste_mo += importe
+        operaciones.append({**o.__dict__, "tarifa_minuto": tarifa,
                             "importe": importe})
 
     # La geometría deducida (Ø de un piñón a partir del paso y de Z) no está en
@@ -88,7 +96,10 @@ def ruta(p: PeticionRuta, sesion: Session = Depends(obtener_sesion)):
         "minutos_unitario": r.minutos_unitario,
         "minutos_preparacion": r.minutos_preparacion,
         "minutos_totales": r.minutos_totales(p.cantidad),
-        "coste_mano_obra_maquina": round(coste_mo, 2),
+        "coste_mano_obra_maquina": None if faltantes else round(coste_mo, 2),
+        "supuestos": r.supuestos,
+        "requiere_revision": bool(r.supuestos or r.avisos or faltantes),
+        "tarifas_pendientes": sorted(faltantes),
         "confianza": r.confianza,
         "avisos": r.avisos,
         "sugerencias": r.sugerencias,
@@ -106,12 +117,13 @@ def calibracion(sesion: Session = Depends(obtener_sesion)):
     filas = sesion.execute(text("""
         SELECT ct.codigo AS maquina,
                r.minutos_unitario::numeric AS estimado,
-               (p.minutos::numeric / nullif(o.cantidad, 0)) AS real_medido
+               (sum(p.minutos)::numeric / nullif(sum(p.cantidad_ok + p.cantidad_rechazo), 0)) AS real_medido
         FROM core.parte_trabajo p
         JOIN core.orden_fabricacion o ON o.id = p.orden_id
         JOIN core.centro_trabajo ct   ON ct.id = p.centro_trabajo_id
         JOIN core.operacion_ruta r    ON r.id = p.operacion_ruta_id
-        WHERE p.minutos > 0 AND o.cantidad > 0 AND r.minutos_unitario > 0
+        WHERE p.minutos > 0 AND (p.cantidad_ok + p.cantidad_rechazo) > 0 AND r.minutos_unitario > 0
+        GROUP BY o.id, ct.codigo, r.id, r.minutos_unitario
     """)).mappings().all()
 
     por_maquina: dict[str, list] = {}
