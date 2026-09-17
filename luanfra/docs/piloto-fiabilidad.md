@@ -76,8 +76,10 @@ Exportaciones multilínea o con comillas incorrectas se apartan para revisión.
 
 1. Validar consultas, transacciones y bloqueos contra PostgreSQL con datos
    sintéticos, y conciliar el mapeo del ERP antes de datos de producción.
-2. La BD existente conserva minutos enteros. Esta entrega admite fracciones
-   en el cálculo de coste en memoria/API; no migra rutas o partes persistidos.
+2. La migración `db/003-minutos-decimales.sql` permite persistir fracciones
+   sin redondeo. En bases existentes debe aplicarse explícitamente tras copia
+   de seguridad; ver `db/tests/README.md`. Validada con PostgreSQL embebido,
+   pendiente de prueba de integración con la API y PostgreSQL 16 en servidor.
 3. El planificador usa capacidad media diaria y secuencia de lotes completos;
    no modela intervalos, turnos variables por fecha, operarios compartidos,
    prioridad de pedidos o transferencia parcial de lotes.
