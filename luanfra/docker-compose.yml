@@ -13,6 +13,7 @@ services:
       - pgdata:/var/lib/postgresql/data
       - ./db/modelo-datos.sql:/docker-entrypoint-initdb.d/01-modelo.sql:ro
       - ./db/002-ajustes-erp.sql:/docker-entrypoint-initdb.d/02-ajustes.sql:ro
+      - ./db/003-minutos-decimales.sql:/docker-entrypoint-initdb.d/03-minutos.sql:ro
       - ./backups:/backups
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${BD_USUARIO:-luanfra}"]
