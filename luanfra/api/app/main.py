@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.rutas import fabricacion
 from app.config import ajustes
 from app.seguridad import autenticar
 from app.rutas import (analisis, asistente, avisos, calculo, kpis,
@@ -26,6 +27,7 @@ app.include_router(asistente.router)
 app.include_router(kpis.router)
 app.include_router(kpis_taller.router)
 app.include_router(mecanizado.router)
+app.include_router(fabricacion.router)
 
 # CORS fuera de autenticación para permitir el preflight del cliente local.
 app.middleware("http")(autenticar)

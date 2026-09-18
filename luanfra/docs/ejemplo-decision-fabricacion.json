@@ -1,0 +1,100 @@
+{
+  "expediente_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "revision": "A",
+  "material": "F-114",
+  "cantidad": 10,
+  "revision_tecnica": "revision-sintetica",
+  "desde": "2026-09-18",
+  "maquinas": [
+    {
+      "procesos": [
+        "fresado"
+      ],
+      "materiales": [
+        "F-114"
+      ],
+      "envolvente_util_mm": [
+        500,
+        400,
+        300
+      ],
+      "coste_hora_integral": 60,
+      "referencia_tarifa": "tarifa-sintetica",
+      "tarifa_desde": "2026-01-01",
+      "minutos_cola": 960,
+      "carga_leida_en": "2026-09-18T08:00:00+00:00",
+      "horas_dia": 8,
+      "disponibilidad": 1,
+      "codigo": "M1"
+    },
+    {
+      "procesos": [
+        "fresado"
+      ],
+      "materiales": [
+        "F-114"
+      ],
+      "envolvente_util_mm": [
+        500,
+        400,
+        300
+      ],
+      "coste_hora_integral": 120,
+      "referencia_tarifa": "tarifa-sintetica",
+      "tarifa_desde": "2026-01-01",
+      "minutos_cola": 0,
+      "carga_leida_en": "2026-09-18T08:00:00+00:00",
+      "horas_dia": 8,
+      "disponibilidad": 1,
+      "codigo": "M2"
+    }
+  ],
+  "operaciones": [
+    {
+      "id": "OP1",
+      "proceso": "fresado",
+      "evidencia": "STEP cara sintética 1",
+      "alternativas": [
+        {
+          "maquina": "M1",
+          "envolvente_amarre_mm": [
+            200,
+            100,
+            80
+          ],
+          "preparacion_min": 20,
+          "ciclo_min": 4,
+          "origen_tiempo": "manual",
+          "referencia_tiempo": "estimacion-sintetica",
+          "validacion_tecnica": "revision-sintetica"
+        },
+        {
+          "maquina": "M2",
+          "envolvente_amarre_mm": [
+            200,
+            100,
+            80
+          ],
+          "preparacion_min": 20,
+          "ciclo_min": 4,
+          "origen_tiempo": "manual",
+          "referencia_tiempo": "estimacion-sintetica",
+          "validacion_tecnica": "revision-sintetica"
+        }
+      ]
+    }
+  ],
+  "economia": {
+    "peso_bruto_kg": 2,
+    "precio_kg": 3,
+    "programacion_lote": 10,
+    "herramientas_lote": 5,
+    "calidad_lote": 5,
+    "subcontrata_lote": 0,
+    "transporte_lote": 0,
+    "otros_lote": 0,
+    "indirectos_pct": 10,
+    "margen_pct": 20,
+    "politica": "recargo_coste"
+  }
+}
